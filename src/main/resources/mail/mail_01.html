@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mail form</title>
+</head>
+<body>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f4f4f7">
+<tbody><tr><td align="center" valign="top">
+        <table class="mobile-shell" width="600" border="0" cellspacing="0" cellpadding="0">
+            <tbody><tr><td style="width:600px; min-width:600px; font-size:0pt; line-height:0pt; font-weight:normal; margin:0; padding:40px 0px;">
+
+                    <!-- Main -->
+
+                    <!-- header -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff">
+                        <tbody><tr>
+                            <td style="border-bottom-width:1px; border-bottom-color:#f4f4f7; border-bottom-style:solid; padding:30px 40px;">
+                                <div align="left" style="font-family:'Noto Sans', Arial,sans-serif; font-size:16px; font-weight:bolder; line-height:16px; letter-spacing:-0.5px;">FAST AICC</div>
+                            </td>
+                            <td style="border-bottom-width:1px; border-bottom-color:#f4f4f7; border-bottom-style:solid; padding:30px 40px;">
+                                <div align="right" style="color:#5e77ff; font-family:'Noto Sans', Arial,sans-serif; font-size:16px; font-weight:bolder; line-height:16px; letter-spacing:-0.5px;">상담이관</div>
+                            </td>
+                            </tr>
+                    </tbody></table>
+                    <!-- //header -->
+
+                    <!-- container -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff">
+                        <tbody><tr><td style="padding:30px 40px;">
+                            <!-- content -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+                                <tbody><tr><td style="padding-bottom:0;">
+                                    <div align="left" style="color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-size:16px; line-height:24px; font-weight:normal;">안녕하세요. <div style="display:inline-block; color:#5e77ff; font-weight:bold;">#{NEW_CUST_OP_ID}</div>님<br>
+                                    <div style="display:inline-block; color:#5e77ff; font-weight:bold;">#{DATE}</div>에 이관되어진 상담이 있으니 확인하시어 고객에게 적절한 응대 바랍니다.</div>
+                                    </td></tr>
+
+                                    <!--상담내용 -->
+                                    <tr><td style="padding:20px 0px;">
+                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                            <tbody><tr><td style="padding-bottom:10px; padding-top:20px; border-top-width:1px; border-top-color:#f4f4f7; border-top-style:solid;"> <div align="left" style="color:#3A68F8; font-family:'Noto Sans', Arial,sans-serif; font-size:10px; line-height:14px; font-weight:bold; text-transform:uppercase;"></div></td></tr>
+                                            <tr><td style="padding-bottom:10px;">
+                                                <div align="left" style="color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bolder; font-size:15px; line-height:15px;">상담내용</div>
+                                                </td></tr>
+
+                                            <tr>
+                                                <td align="left">
+                                                <table class="center" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="" style="border-top:2px solid #3b3648; border-bottom:2px solid #3b3648;">
+                                                    <tbody>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">상담유형1</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{CONSULT_TYPE1_DEPTH}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">상담유형2</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{CONSULT_TYPE2_DEPTH}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">상담유형3</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{CONSULT_TYPE3_DEPTH}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">상담 메모</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{CALL_MEMO}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">긴급도</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{IMPORTANCE_LEVEL_NM}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                </td>
+                                            </tr>
+
+                                        </tbody></table>
+                                    </td></tr>
+                                    <!-- //상담내용 -->
+
+                                    <!-- 고객정보 -->
+                                    <tr><td style="padding:20px 0px;">
+                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                            <tbody><tr><td style="padding-bottom:10px; padding-top:20px; border-top-width:1px; border-top-color:#f4f4f7; border-top-style:solid;"> <div align="left" style="color:#3A68F8; font-family:'Noto Sans', Arial,sans-serif; font-size:10px; line-height:14px; font-weight:bold; text-transform:uppercase;"></div></td></tr>
+                                            <tr><td style="padding-bottom:10px;">
+                                                <div align="left" style="color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bolder; font-size:15px; line-height:15px;">고객정보</div>
+                                                </td></tr>
+
+                                            <tr>
+                                                <td align="left">
+                                                <table class="center" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="" style="border-top:2px solid #3b3648; border-bottom:2px solid #3b3648;">
+                                                    <tbody>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">성명</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{USER_CUST_NM}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">이동전화</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{USER_CUST_TEL_NO}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th align="center" style="width:100px; padding:10px 5px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:bold; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #dfe3ea; background:#eff1f7;">이메일</th>
+                                                            <td align="left" style="padding:10px; color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-weight:normal; font-size:14px; line-height:24px; word-break:keep-all; border-bottom:1px solid #eef1f7;">#{USER_CUST_EMAIL}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                </td>
+                                            </tr>
+
+                                        </tbody></table>
+                                    </td></tr>
+                                    <!-- //고객정보 -->
+
+
+
+                   <!-- 화이트 영역 보호 -->
+                                </tbody></table>
+                                  </td></tr>
+                                    </tbody></table>
+                    <!-- //container -->
+
+        
+
+                        <!-- footer -->
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f4f4f7" style="padding:30px 0 0 0;">
+        <tbody><tr><td style="padding:0px;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tbody><tr><td align="center" style="color:#212124; font-family:'Noto Sans', Arial,sans-serif; font-size:11px; line-height:20px;">
+              (주)마인즈랩 | 경기도 성남시 분당구 대왕판교로644번길 49 다산타워 5층 | 1661-3222<br>
+              Copyright © 2022 MINDsLab Inc. All rights reserved.
+
+                        </td></tr>
+                </tbody></table>
+            </td></tr>
+    </tbody></table>
+<!-- //footer -->
+
+
+
+
+
+                                    </td></tr>
+        </tbody></table>
+    </td></tr>
+</tbody></table>
+    </body>
+</html>

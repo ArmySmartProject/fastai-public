@@ -1,0 +1,1603 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.statistic.mapper.StatisticsMapper">
+
+  <select id="getIbStatsTotalSList" parameterType="map" resultType="map">
+    SELECT /*getIbStatsTotalSList - 인바운드 콜 토탈 통계 리스트 */
+    NULL AS CHANNEL_TYPE /*채널 타입 (0: CALL, 1:CHAT)*/
+    , IFNULL(T1.INCOMING_COUNT, 0) AS INCOMING_COUNT /*총 인입 수*/
+    , IFNULL(T1.BOT_COUNT, 0) AS BOT_COUNT /*BOT 응대 수*/
+    , IFNULL(T1.BOT_CSR_CNT, 0) AS BOT_CSR_CNT /*BOT+CSR(개입(INTERVENT_COUNT)에서 변경)*/
+    , IFNULL(T1.ETC_CNT, 0) AS ETC_CNT /*ETC(휴먼응대 수(OP_COUNT)에서 변경)*/
+    , IFNULL((T1.INCOMING_COUNT-T1.GIVE_UP_COUNT), 0) AS TOTAL_COUNT /* 총 응대수 */
+    , IFNULL(ROUND((((T1.BOT_COUNT+T1.BOT_CSR_CNT+T1.ETC_CNT)/T1.INCOMING_COUNT)*100),1), 0) AS
+    PERSENTAGE /* 응대율 */
+    , IFNULL(T1.GIVE_UP_COUNT, 0) AS GIVE_UP_COUNT /* 포기호 */
+    , IFNULL(ROUND(((T1.GIVE_UP_COUNT/T1.INCOMING_COUNT)*100),1), 0) AS PER_GIVE_UP_COUNT /* 포기율 */
+    , 0 AS FOLLOW_UP_CALL_COUNT /* FOLLOW UP CALL 수 */
+    , TIME_FORMAT(SEC_TO_TIME(IFNULL(ROUND((T1.DURATION DIV
+    IFNULL((T1.INCOMING_COUNT-T1.GIVE_UP_COUNT), 0)), 1), 0)), '%H:%i:%s') AS AVG_CALL_TIME /*
+    평균통화시간 */
+    , TIME_FORMAT(SEC_TO_TIME(IFNULL(ROUND((T1.GIVE_UP_DYRATION DIV T1.GIVE_UP_COUNT),1), 0)),
+    '%H:%i:%s') AS AVG_GIVE_UP_TIME /* 평균포기시간 */
+    <choose>  <!-- 검색유형  30min /hourly / daily / monthly  -->
+      <when test='checkBox1 == "daily" or checkBox1 == "monthly"'>
+        , T1.START_DT AS DATE
+        , '' AS DETAIL_TIME
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        , IFNULL(DATE_FORMAT(T2.TIME_INTERVAL,'%Y-%m-%d'), 0) AS DATE
+        , IFNULL(DATE_FORMAT(T2.TIME_INTERVAL,'%H'), 0) AS DETAIL_TIME
+      </when>
+      <otherwise>
+        , IFNULL(DATE_FORMAT(T2.TIME_INTERVAL,'%Y-%m-%d'), 0) AS DATE
+        , IFNULL(DATE_FORMAT(T2.TIME_INTERVAL,'%H:%i'), 0) AS DETAIL_TIME
+      </otherwise>
+    </choose>
+    FROM (
+    SELECT
+    IFNULL(COUNT(A.CALL_ID), 0) AS INCOMING_COUNT /*총 인입 수*/
+    , IFNULL(SUM(IF(A.CALL_STATUS = 'CS0005', 1, 0)), 0) AS BOT_COUNT /*BOT 응대 수*/
+    , IFNULL(SUM(IF(A.CALL_STATUS='CS0010' OR CALL_STATUS='CS0031', 1, 0)), 0) AS BOT_CSR_CNT
+    /*BOT+CSR */
+    , IFNULL(SUM(IF(A.CALL_STATUS='CS0003', 1, 0)), 0) AS ETC_CNT
+    , ROUND(SUM(IF(A.CALL_STATUS IN ('CS0003', 'CS0005', 'CS0010', 'CS0031'), DURATION, 0)), 1) AS
+    DURATION /*평균통화시간*/
+    , IFNULL(SUM(IF(A.CALL_STATUS NOT IN ('CS0003', 'CS0005', 'CS0010', 'CS0031'), DURATION, 0)), 0)
+    AS GIVE_UP_DYRATION
+    , IFNULL(SUM(IF(A.CALL_STATUS NOT IN ('CS0003', 'CS0005', 'CS0010', 'CS0031'), 1, 0)), 0) AS
+    GIVE_UP_COUNT
+    <choose>  <!-- 검색유형  30min /hourly / daily / monthly  -->
+      <when test='checkBox1 == "30min"'>
+        , FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(A.START_TIME) DIV 1800 AS SIGNED) * 1800) AS START_DT
+        /*집계 시작 시각*/
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m-%d %H:00:00') AS START_DT /*집계 시작 시각*/
+      </when>
+      <when test='checkBox1 == "daily"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m-%d') AS START_DT /*집계 시작 시각*/
+      </when>
+      <when test='checkBox1 == "monthly"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m') AS START_DT /*집계 시작 시각*/
+      </when>
+    </choose>
+    FROM CALL_HISTORY A
+    LEFT JOIN TN_USER B
+    ON A.CUST_OP_ID = B.USER_ID
+    WHERE 1=1
+    AND CALL_TYPE_CODE = 'CT0001'
+    <if test="companyId != null and companyId != ''">
+      AND B.COMPANY_ID = #{companyId}
+    </if>
+    <if test="userId != null and userId != ''">
+      AND A.CUST_OP_ID = #{userId}
+    </if>
+    <if test='checkBox3 == "exception"'>
+      AND DAYOFWEEK(A.START_TIME) NOT IN ('1','7')
+    </if>
+    <choose>  <!-- 검색유형  30min /hourly / daily / monthly  -->
+      <when test='checkBox1 == "30min"'>
+        AND A.START_TIME BETWEEN #{fromDate} AND #{toDate}
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m-%d %H:00:00') BETWEEN #{fromDate} AND #{toDate}
+      </when>
+      <when test='checkBox1 == "daily"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m-%d') BETWEEN DATE_FORMAT(#{fromDate}, '%Y-%m-%d') AND
+        DATE_FORMAT(#{toDate}, '%Y-%m-%d')
+      </when>
+      <when test='checkBox1 == "monthly"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m') BETWEEN DATE_FORMAT(#{fromDate}, '%Y-%m') AND
+        DATE_FORMAT(#{toDate}, '%Y-%m')
+      </when>
+    </choose>
+    GROUP BY START_DT
+    ) T1
+    <choose>  <!-- 검색유형  30min /hourly / daily / monthly  -->
+      <when test='checkBox1 == "30min"'>
+        RIGHT JOIN
+        (SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 30 MINUTE)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 30 MINUTE
+        ) T2 /*기간의 30분 주기 더미 테이블*/
+        ON T1.START_DT = T2.TIME_INTERVAL
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        RIGHT JOIN
+        (SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 1 HOUR, '%Y-%m-%d %H:00:00') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 1 HOUR)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 1 HOUR
+        ) T2 /*기간의 1시간 주기 더미 테이블*/
+        ON T1.START_DT = T2.TIME_INTERVAL
+      </when>
+    </choose>
+    WHERE 1=1
+    <if test='checkBox3 == "exception" and checkBox1 != "daily" and checkBox1 != "monthly"'>
+      AND DAYOFWEEK(T2.TIME_INTERVAL) NOT IN ('1','7')
+    </if>
+    <choose>
+      <when test="dateSort == 'asc' and dateDetailSort == 'asc'">
+        ORDER BY DATE ASC, DETAIL_TIME ASC
+      </when>
+      <when test="dateSort == 'desc' and dateDetailSort =='desc'">
+        ORDER BY DATE DESC, DETAIL_TIME DESC
+      </when>
+      <when test="dateSort == 'asc' and dateDetailSort =='desc'">
+        ORDER BY DATE ASC, DETAIL_TIME DESC
+      </when>
+      <when test="dateSort == 'desc' and dateDetailSort =='asc'">
+        ORDER BY DATE DESC, DETAIL_TIME ASC
+      </when>
+      <otherwise>
+        ORDER BY DATE ASC, DETAIL_TIME ASC
+      </otherwise>
+    </choose>
+    <if test="rowNum != null and rowNum != ''">
+      LIMIT #{rowNum, jdbcType=INTEGER}
+    </if>
+    <if test="offset != null and offset != ''">
+      OFFSET #{offset, jdbcType=INTEGER}
+    </if>
+  </select>
+
+  <select id="getTotalCount" parameterType="map" resultType="map">
+    SELECT /*getIbStatsTotalSList - 인바운드 콜 토탈 통계 리스트 */
+    COUNT(*) AS totalCnt
+    FROM (
+    SELECT
+    IFNULL(COUNT(A.CALL_ID), 0) AS INCOMING_COUNT /*총 인입 수*/
+    , IFNULL(SUM(IF(A.CALL_STATUS = 'CS0005', 1, 0)), 0) AS BOT_COUNT /*BOT 응대 수*/
+    , IFNULL(SUM(IF(A.CALL_STATUS='CS0010' OR CALL_STATUS='CS0031', 1, 0)), 0) AS BOT_CSR_CNT
+    /*BOT+CSR */
+    , IFNULL(SUM(IF(A.CALL_STATUS='CS0003', 1, 0)), 0) AS ETC_CNT
+    , ROUND(SUM(IF(A.CALL_STATUS IN ('CS0003', 'CS0005', 'CS0010', 'CS0031'), DURATION, 0)), 1) AS
+    DURATION /*평균통화시간*/
+    , IFNULL(SUM(IF(A.CALL_STATUS NOT IN ('CS0003', 'CS0005', 'CS0010', 'CS0031'), DURATION, 0)), 0)
+    AS GIVE_UP_DYRATION
+    , IFNULL(SUM(IF(A.CALL_STATUS NOT IN ('CS0003', 'CS0005', 'CS0010', 'CS0031'), 1, 0)), 0) AS
+    GIVE_UP_COUNT
+    <choose>  <!-- 검색유형  30min /hourly / daily / monthly  -->
+      <when test='checkBox1 == "30min"'>
+        , FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(A.START_TIME) DIV 1800 AS SIGNED) * 1800) AS START_DT
+        /*집계 시작 시각*/
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m-%d %H:00:00') AS START_DT /*집계 시작 시각*/
+      </when>
+      <when test='checkBox1 == "daily"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m-%d') AS START_DT /*집계 시작 시각*/
+      </when>
+      <when test='checkBox1 == "monthly"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m') AS START_DT /*집계 시작 시각*/
+      </when>
+    </choose>
+    FROM CALL_HISTORY A
+    LEFT JOIN TN_USER B
+    ON A.CUST_OP_ID = B.USER_ID
+    WHERE 1=1
+    AND CALL_TYPE_CODE = 'CT0001'
+    <if test="companyId != null and companyId != ''">
+      AND B.COMPANY_ID = #{companyId}
+    </if>
+    <if test="userId != null and userId != ''">
+      AND A.CUST_OP_ID = #{userId}
+    </if>
+    <if test='checkBox3 == "exception"'>
+      AND DAYOFWEEK(A.START_TIME) NOT IN ('1','7')
+    </if>
+    <choose>  <!-- 검색유형  30min /hourly / daily / monthly  -->
+      <when test='checkBox1 == "30min"'>
+        AND A.START_TIME BETWEEN #{fromDate} AND #{toDate}
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m-%d %H:00:00') BETWEEN #{fromDate} AND #{toDate}
+      </when>
+      <when test='checkBox1 == "daily"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m-%d') BETWEEN DATE_FORMAT(#{fromDate}, '%Y-%m-%d') AND
+        DATE_FORMAT(#{toDate}, '%Y-%m-%d')
+      </when>
+      <when test='checkBox1 == "monthly"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m') BETWEEN DATE_FORMAT(#{fromDate}, '%Y-%m') AND
+        DATE_FORMAT(#{toDate}, '%Y-%m')
+      </when>
+    </choose>
+    GROUP BY START_DT
+    ) T1
+    <choose>  <!-- 검색유형  30min /hourly / daily / monthly  -->
+      <when test='checkBox1 == "30min"'>
+        RIGHT JOIN
+        (SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 30 MINUTE)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 30 MINUTE
+        ) T2 /*기간의 30분 주기 더미 테이블*/
+        ON T1.START_DT = T2.TIME_INTERVAL
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        RIGHT JOIN
+        (SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 1 HOUR, '%Y-%m-%d %H:00:00') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 1 HOUR)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 1 HOUR
+        ) T2 /*기간의 1시간 주기 더미 테이블*/
+        ON T1.START_DT = T2.TIME_INTERVAL
+      </when>
+    </choose>
+    WHERE 1=1
+    <if test='checkBox3 == "exception" and checkBox1 != "daily" and checkBox1 != "monthly"'>
+      AND DAYOFWEEK(T2.TIME_INTERVAL) NOT IN ('1','7')
+    </if>
+  </select>
+
+  <select id="getTotalCount_before" parameterType="map" resultType="map">
+    SELECT /*getTotalCount - 인바운드 콜 토탈 카운터*/
+    COUNT(*) AS totalCnt
+    FROM (
+    <choose>  <!-- 검색유형  30min/hourly / daily / monthly  -->
+      <when test='checkBox1 == "30min"'>
+        SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 30 MINUTE)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 30 MINUTE
+        /*기간의 30분 주기 더미 테이블*/
+      </when>
+      <when test='checkBox1 == "hourly"'>
+        SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 1 HOUR, '%Y-%m-%d %H:00:00') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 1 HOUR)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 1 HOUR
+        /*기간의 1시간 주기 더미 테이블*/
+      </when>
+      <when test='checkBox1 == "daily"'>
+        SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 1 DAY, '%Y-%m-%d') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 1 DAY)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 1 DAY
+        /*기간의 1일 주기 더미 테이블*/
+      </when>
+      <when test='checkBox1 == "monthly"'>
+        SELECT
+        DATE_FORMAT(@curRow := @curRow + INTERVAL 1 MONTH, '%Y-%m') AS TIME_INTERVAL
+        FROM CALL_HISTORY
+        JOIN (SELECT @curRow := TIMESTAMP(#{fromDate} - INTERVAL 1 MONTH)) r
+        ON @curRow <![CDATA[ < ]]> #{toDate} - INTERVAL 1 MONTH
+        /*기간의 1달 주기 더미 테이블*/
+      </when>
+    </choose>
+    ) T2
+    WHERE 1=1
+    <if test='checkBox3 == "exception" and checkBox1 != "monthly"'>
+      AND DAYOFWEEK(T2.TIME_INTERVAL) NOT IN ('1','7')
+    </if>
+  </select>
+
+  <select id="getStatsRecordSList" parameterType="map" resultType="map">
+    SELECT /*getIbStatsRecordSList - 콜 이력 리스트*/
+    *, ROW_NUMBER() OVER( ORDER BY DAILY DESC, START_TIME DESC) AS RNUM
+    FROM (
+    SELECT ISNULL(CONVERT(NVARCHAR, A.START_TIME,120), '-') AS START_TIME
+    , ISNULL(D.CAMPAIGN_NM, '-') AS SIP_NAME
+    , CONCAT(ISNULL(CA1.CODE_NM, '-'),
+    CASE WHEN CA2.CODE_NM != NULL THEN CONCAT(' > ', CA2.CODE_NM) ELSE '' END,
+    CASE WHEN CA3.CODE_NM != NULL THEN CONCAT(' > ', CA3.CODE_NM) ELSE '' END ) AS CONSULT_TYPE
+    , A.SIP_USER AS SIP_ACCOUNT
+    , ISNULL(A.DIAL_RESULT, '-') AS CALL_STATUS_VALUE
+    , ISNULL(A.CUST_OP_ID, '-') AS CUST_OP_ID
+    , ISNULL(F.CUST_NM, '-') AS CUST_NM
+    , ISNULL(CONVERT(NVARCHAR, DATEADD(S, A.DURATION, ''), 8), '-') AS DURATION
+    , CONCAT(CASE WHEN A.CALL_STATUS='CS0005' THEN CONVERT(NVARCHAR, DATEADD(S, A.DURATION, ''), 8)
+    ELSE '-' END,' / -') AS BOT_CSR_DURATION
+    , A.CALL_ID AS CALL_ID
+    , B.CONTRACT_NO AS CONTRACT_NO
+    , B.CAMPAIGN_ID AS CAMPAIGN_ID
+    , ISNULL(CONVERT(NVARCHAR(10), A.START_TIME,120), '-') AS DAILY
+    , A.CALL_TYPE_CODE AS CALL_TYPE_CODE
+    , ISNULL(A.SCENARIO_RESULT, '-') AS IS_GUIDE_SUCC
+    , F.CUST_DATA AS CUST_DATA
+    , ISNULL(A.INSPECT_RESULT, '-') AS IS_INSPECT_SUCC
+    FROM CALL_HISTORY A
+    LEFT JOIN CM_CONTRACT B
+    ON A.CONTRACT_NO = B.CONTRACT_NO
+    LEFT JOIN CM_CAMPAIGN D
+    ON B.CAMPAIGN_ID = D.CAMPAIGN_ID
+    LEFT JOIN CUST_INFO F
+    ON B.CUST_ID = F.CUST_ID
+    LEFT JOIN CUST_CATEGORY_CD CA1 ON B.CAMPAIGN_ID = CA1.CAMPAIGN_ID AND CA1.CODE =
+    A.CONSULT_TYPE1_DEPTH1
+    LEFT JOIN CUST_CATEGORY_CD CA2 ON B.CAMPAIGN_ID = CA2.CAMPAIGN_ID AND CA2.CODE =
+    A.CONSULT_TYPE2_DEPTH1
+    LEFT JOIN CUST_CATEGORY_CD CA3 ON B.CAMPAIGN_ID = CA3.CAMPAIGN_ID AND CA3.CODE =
+    A.CONSULT_TYPE3_DEPTH1
+    WHERE 1=1
+    <choose>
+      <when test="pageType == 'inbound'">
+        AND A.CALL_TYPE_CODE = 'CT0001'
+        <if test="companyId != null and companyId != '' ">
+          AND D.CAMPAIGN_ID IN (SELECT campaign_id FROM CM_COMPANY_CAMPAIGNS WHERE company_id =
+          #{companyId})
+        </if>
+      </when>
+      <otherwise>
+        AND A.CALL_TYPE_CODE = 'CT0002'
+        <if test="companyId != null and companyId != '' ">
+          AND D.CAMPAIGN_ID IN (SELECT campaign_id FROM CM_COMPANY_CAMPAIGNS WHERE company_id =
+          #{companyId})
+        </if>
+      </otherwise>
+    </choose>
+    <choose>
+      <when test="daily == true">
+        <if test="toDate != null and toDate != '' ">
+          AND CONVERT(NVARCHAR(10), A.CALL_DATE, 120) <![CDATA[ <= ]]> #{toDate}
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          AND CONVERT(NVARCHAR(10), A.CALL_DATE, 120) <![CDATA[ >= ]]> #{fromDate}
+        </if>
+      </when>
+      <otherwise>
+        <if test="toDate != null and toDate != '' ">
+          AND A.CALL_DATE <![CDATA[ <= ]]> #{toDate}
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          AND A.CALL_DATE <![CDATA[ >= ]]> #{fromDate}
+        </if>
+      </otherwise>
+    </choose>
+    <if test="pageType == 'outbound'">
+	    <choose>
+	      <when test="callResult == 'sucFail'">
+	        AND A.DIAL_RESULT IS NOT NULL
+	      </when>
+	      <when test="callResult == 'sucNull'">
+	        AND (A.DIAL_RESULT IS NULL OR A.DIAL_RESULT = '200')
+	      </when>
+	      <when test="callResult == 'failNull'">
+	        AND (A.DIAL_RESULT IS NULL OR A.DIAL_RESULT != '200')
+	      </when>
+	      <when test="callResult == 'success'">
+	        AND A.DIAL_RESULT = '200'
+	      </when>
+	      <when test="callResult == 'fail'">
+	        AND A.DIAL_RESULT != '200'
+	      </when>
+	      <when test="callResult == 'null'">
+	        AND A.DIAL_RESULT IS NULL
+	      </when>
+	    </choose>
+	    <choose>
+	      <when test="guideResult == 'sucFail'">
+	        AND (A.SCENARIO_RESULT = 'Y' OR (A.SCENARIO_RESULT != 'Y' AND A.SCENARIO_RESULT IS NOT
+	        NULL))
+	      </when>
+	      <when test="guideResult == 'sucNull'">
+	        AND (A.SCENARIO_RESULT = 'Y' OR A.SCENARIO_RESULT IS NULL)
+	      </when>
+	      <when test="guideResult == 'failNull'">
+	        AND ((A.SCENARIO_RESULT != 'Y' AND A.SCENARIO_RESULT IS NOT NULL) OR A.SCENARIO_RESULT IS
+	        NULL)
+	      </when>
+	      <when test="guideResult == 'success'">
+	        AND A.SCENARIO_RESULT = 'Y'
+	      </when>
+	      <when test="guideResult == 'fail'">
+	        AND A.SCENARIO_RESULT != 'Y' AND A.SCENARIO_RESULT IS NOT NULL
+	      </when>
+	      <when test="guideResult == 'null'">
+	        AND A.SCENARIO_RESULT IS NULL
+	      </when>
+	    </choose>
+      <choose>
+        <when test="inspectResult == 'sucFail'">
+          AND (A.INSPECT_RESULT = 'Y' OR A.INSPECT_RESULT = 'N')
+        </when>
+        <when test="inspectResult == 'sucNull'">
+          AND (A.INSPECT_RESULT = 'Y' OR A.INSPECT_RESULT IS NULL)
+        </when>
+        <when test="inspectResult == 'failNull'">
+          AND (A.INSPECT_RESULT IS NULL OR A.INSPECT_RESULT = 'N')
+        </when>
+        <when test="inspectResult == 'success'">
+          AND A.INSPECT_RESULT = 'Y'
+        </when>
+        <when test="inspectResult == 'fail'">
+          AND A.INSPECT_RESULT = 'N'
+        </when>
+        <when test="inspectResult == 'null'">
+          AND A.INSPECT_RESULT IS NULL
+        </when>
+      </choose>
+	    <if test="custData != null and custData.size != 0">
+	      <foreach collection="custData" item="map">
+	        <if test="map.operator == 'AND'">
+	          AND (JSON_VALUE(F.CUST_DATA, #{map.custCol}) like CONCAT('%', #{map.search}, '%')
+	          <if test="map.separator != null and map.separator != ''">
+	            ${map.separator}
+	          </if>
+	        </if>
+	        <if test="map.operator == 'OR'">
+	          OR JSON_VALUE(F.CUST_DATA, #{map.custCol}) like CONCAT('%', #{map.search}, '%')
+	          <if test="map.separator != null and map.separator != ''">
+	            ${map.separator}
+	          </if>
+	        </if>
+	      </foreach>
+	    </if>
+	</if>
+    <if test="duration != null and duration != ''">
+      AND A.DURATION >= #{duration}
+    </if>
+    <if test='checkBox3 == "exception"'>
+      AND DATEPART(DW,A.CALL_DATE) NOT IN ('1', '7') <!-- 제외 여부 -->
+    </if>
+    <if test="sipName != null and sipName.size != 0">
+      AND D.CAMPAIGN_ID IN
+      <foreach collection="sipName" item="campaign_Id" index="index" open="(" close=")"
+        separator=",">
+        #{campaign_Id}
+      </foreach>
+    </if>
+    <if test="consultType != null and consultType != ''">
+      AND (CA1.CODE_NM LIKE CONCAT('%', #{consultType}, '%') OR
+      CA2.CODE_NM LIKE CONCAT('%', #{consultType}, '%') OR
+      CA3.CODE_NM LIKE CONCAT('%', #{consultType}, '%'))
+    </if>
+    <if test="sipAccount != null and sipAccount != ''">
+      AND A.SIP_USER LIKE CONCAT('%', #{sipAccount}, '%')
+    </if>
+    <if test="custOpId != null and custOpId != ''">
+      AND A.CUST_OP_ID LIKE CONCAT('%', #{custOpId}, '%')
+    </if>
+    <if test="custNm != null and custNm != ''">
+      AND F.CUST_NM LIKE CONCAT('%', #{custNm}, '%')
+    </if>
+    <if test="userId != null and userId != ''">
+      AND A.CUST_OP_ID = #{userId}
+    </if>
+    ) AS T
+    <choose>
+      <when test="daily == true">
+        <choose>
+          <when test="groupSortOrder == 'asc' and sortOrder == 'asc' ">
+            ORDER BY DAILY ASC, START_TIME ASC
+          </when>
+          <when test="groupSortOrder == 'desc' and sortOrder == 'asc' ">
+            ORDER BY DAILY DESC, START_TIME ASC
+          </when>
+          <when test="groupSortOrder == 'asc' and sortOrder == 'desc' ">
+            ORDER BY DAILY ASC, START_TIME DESC
+          </when>
+          <otherwise>
+            ORDER BY DAILY DESC, START_TIME DESC
+          </otherwise>
+        </choose>
+      </when>
+      <otherwise>
+        <choose>
+          <when test="sortOrder == 'asc' ">
+            ORDER BY START_TIME ASC
+          </when>
+          <otherwise>
+            ORDER BY START_TIME DESC
+          </otherwise>
+        </choose>
+      </otherwise>
+    </choose>
+    <if test="offset != null and rowNum != null and rowNum != 0">
+      OFFSET #{offset, jdbcType=INTEGER} ROWS FETCH NEXT #{rowNum, jdbcType=INTEGER} ROWS ONLY
+    </if>
+  </select>
+
+  <select id="getRecordCount" parameterType="map" resultType="map">
+    SELECT /*getRecordCount - 콜 이력 카운트*/
+    COUNT(DISTINCT (A.CALL_ID)) AS totalCnt
+    FROM CALL_HISTORY A
+    LEFT JOIN CM_CONTRACT B
+    ON A.CONTRACT_NO = B.CONTRACT_NO
+    LEFT JOIN CM_CAMPAIGN D
+    ON B.CAMPAIGN_ID = D.CAMPAIGN_ID
+    LEFT JOIN CUST_INFO F
+    ON B.CUST_ID = F.CUST_ID
+    LEFT JOIN CUST_CATEGORY_CD CA1 ON B.CAMPAIGN_ID = CA1.CAMPAIGN_ID AND CA1.CODE =
+    A.CONSULT_TYPE1_DEPTH1
+    LEFT JOIN CUST_CATEGORY_CD CA2 ON B.CAMPAIGN_ID = CA2.CAMPAIGN_ID AND CA2.CODE =
+    A.CONSULT_TYPE2_DEPTH1
+    LEFT JOIN CUST_CATEGORY_CD CA3 ON B.CAMPAIGN_ID = CA3.CAMPAIGN_ID AND CA3.CODE =
+    A.CONSULT_TYPE3_DEPTH1
+    WHERE 1=1
+    <choose>
+      <when test="pageType == 'inbound'">
+        AND A.CALL_TYPE_CODE = 'CT0001'
+        <if test="companyId != null and companyId != '' ">
+          AND D.CAMPAIGN_ID IN (SELECT campaign_id FROM CM_COMPANY_CAMPAIGNS WHERE company_id =
+          #{companyId})
+        </if>
+      </when>
+      <otherwise>
+        AND A.CALL_TYPE_CODE = 'CT0002'
+        <if test="companyId != null and companyId != '' ">
+          AND D.CAMPAIGN_ID IN (SELECT campaign_id FROM CM_COMPANY_CAMPAIGNS WHERE company_id =
+          #{companyId})
+        </if>
+      </otherwise>
+    </choose>
+    <choose>
+      <when test="daily == true">
+        <if test="toDate != null and toDate != '' ">
+          AND CONVERT(NVARCHAR(10), A.CALL_DATE, 120) <![CDATA[ <= ]]> #{toDate}
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          AND CONVERT(NVARCHAR(10), A.CALL_DATE, 120) <![CDATA[ >= ]]> #{fromDate}
+        </if>
+      </when>
+      <otherwise>
+        <if test="toDate != null and toDate != '' ">
+          AND A.CALL_DATE <![CDATA[ <= ]]> #{toDate}
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          AND A.CALL_DATE <![CDATA[ >= ]]> #{fromDate}
+        </if>
+      </otherwise>
+    </choose>
+    <if test="pageType == 'outbound'">
+	    <choose>
+	      <when test="callResult == 'sucFail'">
+	        AND A.DIAL_RESULT IS NOT NULL
+	      </when>
+	      <when test="callResult == 'sucNull'">
+	        AND (A.DIAL_RESULT IS NULL OR A.DIAL_RESULT = '200')
+	      </when>
+	      <when test="callResult == 'failNull'">
+	        AND (A.DIAL_RESULT IS NULL OR A.DIAL_RESULT != '200')
+	      </when>
+	      <when test="callResult == 'success'">
+	        AND A.DIAL_RESULT = '200'
+	      </when>
+	      <when test="callResult == 'fail'">
+	        AND A.DIAL_RESULT != '200'
+	      </when>
+	      <when test="callResult == 'null'">
+	        AND A.DIAL_RESULT IS NULL
+	      </when>
+	    </choose>
+	    <choose>
+	      <when test="guideResult == 'sucFail'">
+	        AND (A.SCENARIO_RESULT = 'Y' OR (A.SCENARIO_RESULT != 'Y' AND A.SCENARIO_RESULT IS NOT
+	        NULL))
+	      </when>
+	      <when test="guideResult == 'sucNull'">
+	        AND (A.SCENARIO_RESULT = 'Y' OR A.SCENARIO_RESULT IS NULL)
+	      </when>
+	      <when test="guideResult == 'failNull'">
+	        AND ((A.SCENARIO_RESULT != 'Y' AND A.SCENARIO_RESULT IS NOT NULL) OR A.SCENARIO_RESULT IS
+	        NULL)
+	      </when>
+	      <when test="guideResult == 'success'">
+	        AND A.SCENARIO_RESULT = 'Y'
+	      </when>
+	      <when test="guideResult == 'fail'">
+	        AND A.SCENARIO_RESULT != 'Y' AND A.SCENARIO_RESULT IS NOT NULL
+	      </when>
+	      <when test="guideResult == 'null'">
+	        AND A.SCENARIO_RESULT IS NULL
+	      </when>
+	    </choose>
+      <choose>
+        <when test="inspectResult == 'sucFail'">
+          AND (A.INSPECT_RESULT = 'Y' OR A.INSPECT_RESULT = 'N')
+        </when>
+        <when test="inspectResult == 'sucNull'">
+          AND (A.INSPECT_RESULT = 'Y' OR A.INSPECT_RESULT IS NULL)
+        </when>
+        <when test="inspectResult == 'failNull'">
+          AND (A.INSPECT_RESULT IS NULL OR A.INSPECT_RESULT = 'N')
+        </when>
+        <when test="inspectResult == 'success'">
+          AND A.INSPECT_RESULT = 'Y'
+        </when>
+        <when test="inspectResult == 'fail'">
+          AND A.INSPECT_RESULT = 'N'
+        </when>
+        <when test="inspectResult == 'null'">
+          AND A.INSPECT_RESULT IS NULL
+        </when>
+      </choose>
+	    <if test="custData != null and custData.size != 0">
+	      <foreach collection="custData" item="map">
+	        <if test="map.operator == 'AND'">
+	          AND (JSON_VALUE(F.CUST_DATA, #{map.custCol}) like CONCAT('%', #{map.search}, '%')
+	          <if test="map.separator != null and map.separator != ''">
+	            ${map.separator}
+	          </if>
+	        </if>
+	        <if test="map.operator == 'OR'">
+	          OR JSON_VALUE(F.CUST_DATA, #{map.custCol}) like CONCAT('%', #{map.search}, '%')
+	          <if test="map.separator != null and map.separator != ''">
+	            ${map.separator}
+	          </if>
+	        </if>
+	      </foreach>
+	    </if>
+	</if>
+    <if test="duration != null and duration != ''">
+      AND A.DURATION >= #{duration}
+    </if>
+    <if test='checkBox3 == "exception"'>
+      AND DATEPART(DW,A.CALL_DATE) NOT IN ('1', '7') <!-- 제외 여부 -->
+    </if>
+    <if test="sipName != null and sipName.size != 0">
+      AND D.CAMPAIGN_ID IN
+      <foreach collection="sipName" item="campaign_Id" index="index" open="(" close=")"
+        separator=",">
+        #{campaign_Id}
+      </foreach>
+    </if>
+    <if test="consultType != null and consultType != ''">
+      AND (CA1.CODE_NM LIKE CONCAT('%', #{consultType}, '%') OR
+      CA2.CODE_NM LIKE CONCAT('%', #{consultType}, '%') OR
+      CA3.CODE_NM LIKE CONCAT('%', #{consultType}, '%'))
+    </if>
+    <if test="sipAccount != null and sipAccount != ''">
+      AND A.SIP_USER LIKE CONCAT('%', #{sipAccount}, '%')
+    </if>
+    <if test="custOpId != null and custOpId != ''">
+      AND A.CUST_OP_ID LIKE CONCAT('%', #{custOpId}, '%')
+    </if>
+    <if test="custNm != null and custNm != ''">
+      AND F.CUST_NM LIKE CONCAT('%', #{custNm}, '%')
+    </if>
+    <if test="userId != null and userId != ''">
+      AND A.CUST_OP_ID = #{userId}
+    </if>
+  </select>
+
+  <select id="getIbStatsAdviserSList" parameterType="map" resultType="map">
+    SELECT DATE
+    , CONCAT(USER_NM," ",CUST_OP_ID) AS CUST_OP_NM
+    , USER_NM AS CUST_OP_NM_before
+    , SUM(IFNULL(IN_CALL_COUNT, 0)) AS IN_CALL_COUNT
+    , DATE_FORMAT(SEC_TO_TIME(SUM(IFNULL(IN_CALL_TIME, 0))),'%H:%i:%s') AS IN_CALL_TIME_TOT
+    , DATE_FORMAT(SEC_TO_TIME(SUM(IFNULL(IN_CALL_TIME, 0))/SUM(IFNULL(IN_CALL_COUNT,
+    0))),'%H:%i:%s') AS IN_CALL_TIME_AVG
+    , SUM(CASE WHEN DATE_HOUR = '0' THEN IN_CALL_COUNT ELSE 0 END) as CNT_00
+    , SUM(CASE WHEN DATE_HOUR = '1' THEN IN_CALL_COUNT ELSE 0 END) as CNT_01
+    , SUM(CASE WHEN DATE_HOUR = '2' THEN IN_CALL_COUNT ELSE 0 END) as CNT_02
+    , SUM(CASE WHEN DATE_HOUR = '3' THEN IN_CALL_COUNT ELSE 0 END) as CNT_03
+    , SUM(CASE WHEN DATE_HOUR = '4' THEN IN_CALL_COUNT ELSE 0 END) as CNT_04
+    , SUM(CASE WHEN DATE_HOUR = '5' THEN IN_CALL_COUNT ELSE 0 END) as CNT_05
+    , SUM(CASE WHEN DATE_HOUR = '6' THEN IN_CALL_COUNT ELSE 0 END) as CNT_06
+    , SUM(CASE WHEN DATE_HOUR = '7' THEN IN_CALL_COUNT ELSE 0 END) as CNT_07
+    , SUM(CASE WHEN DATE_HOUR = '8' THEN IN_CALL_COUNT ELSE 0 END) as CNT_08
+    , SUM(CASE WHEN DATE_HOUR = '9' THEN IN_CALL_COUNT ELSE 0 END) as CNT_09
+    , SUM(CASE WHEN DATE_HOUR = '10' THEN IN_CALL_COUNT ELSE 0 END) as CNT_10
+    , SUM(CASE WHEN DATE_HOUR = '11' THEN IN_CALL_COUNT ELSE 0 END) as CNT_11
+    , SUM(CASE WHEN DATE_HOUR = '12' THEN IN_CALL_COUNT ELSE 0 END) as CNT_12
+    , SUM(CASE WHEN DATE_HOUR = '13' THEN IN_CALL_COUNT ELSE 0 END) as CNT_13
+    , SUM(CASE WHEN DATE_HOUR = '14' THEN IN_CALL_COUNT ELSE 0 END) as CNT_14
+    , SUM(CASE WHEN DATE_HOUR = '15' THEN IN_CALL_COUNT ELSE 0 END) as CNT_15
+    , SUM(CASE WHEN DATE_HOUR = '16' THEN IN_CALL_COUNT ELSE 0 END) as CNT_16
+    , SUM(CASE WHEN DATE_HOUR = '17' THEN IN_CALL_COUNT ELSE 0 END) as CNT_17
+    , SUM(CASE WHEN DATE_HOUR = '18' THEN IN_CALL_COUNT ELSE 0 END) as CNT_18
+    , SUM(CASE WHEN DATE_HOUR = '19' THEN IN_CALL_COUNT ELSE 0 END) as CNT_19
+    , SUM(CASE WHEN DATE_HOUR = '20' THEN IN_CALL_COUNT ELSE 0 END) as CNT_20
+    , SUM(CASE WHEN DATE_HOUR = '21' THEN IN_CALL_COUNT ELSE 0 END) as CNT_21
+    , SUM(CASE WHEN DATE_HOUR = '22' THEN IN_CALL_COUNT ELSE 0 END) as CNT_22
+    , SUM(CASE WHEN DATE_HOUR = '23' THEN IN_CALL_COUNT ELSE 0 END) as CNT_23
+    FROM (SELECT A.CUST_OP_ID AS CUST_OP_ID /*상담원 ID*/
+    , COUNT(A.CALL_ID) AS IN_CALL_COUNT /*인바운드 콜 카운트*/
+    , ROUND(SUM(A.DURATION)) AS IN_CALL_TIME /*인바운드 콜 타임*/
+    <choose>
+      <when test='checkBox1 == "monthly"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m') AS DATE
+      </when>
+      <when test='checkBox1 == "daily"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m-%d') AS DATE
+      </when>
+    </choose>
+    , HOUR(A.START_TIME) as DATE_HOUR
+    , B.USER_NM
+    FROM CALL_HISTORY A
+    LEFT JOIN TN_USER B
+    ON A.CUST_OP_ID = B.USER_ID
+    WHERE 1=1
+    AND A.CALL_TYPE_CODE = 'CT0001' /* CT0001:인바운드, CT0002:아웃바운드 */
+    <choose>
+      <when test='checkBox1 == "monthly"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m') BETWEEN #{fromDate} AND #{toDate}
+      </when>
+      <when test='checkBox1 == "daily"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m-%d') BETWEEN #{fromDate} AND #{toDate}
+      </when>
+    </choose>
+    <if test='checkBox3 == "exception"'>
+      AND DAYOFWEEK(A.START_TIME) NOT IN ('1', '7') <!-- 제외 여부 -->
+    </if>
+    <choose>
+      <when test='multiple_select_yn == "Y" and consultant == "N"'>
+        AND A.CUST_OP_ID IN
+        <foreach collection="multiple_select" item="person" open="(" close=")" separator=",">
+          #{person}
+        </foreach>
+      </when>
+      <when test='consultant == "Y"'>
+        <if test='custOpId != null and custOpId != ""'>
+          AND A.CUST_OP_ID = #{custOpId}
+        </if>
+      </when>
+    </choose>
+    <if test="companyId != null and companyId != ''">
+      AND B.COMPANY_ID = #{companyId}
+    </if>
+    GROUP BY A.CUST_OP_ID, DATE, DATE_HOUR)T
+    <choose>
+      <when test='checkBox2=="mode1"'>
+        GROUP BY CUST_OP_ID, DATE
+      </when>
+      <when test='checkBox2=="mode2"'>
+        GROUP BY DATE, CUST_OP_ID
+      </when>
+    </choose>
+    <choose>
+      <when test="groupType == 'custOpNm' ">
+        <choose>
+          <when test="sortOrder == 'asc' ">
+            ORDER BY CUST_OP_NM DESC, DATE ASC
+          </when>
+          <otherwise>
+            ORDER BY CUST_OP_NM DESC, DATE DESC
+          </otherwise>
+        </choose>
+      </when>
+      <otherwise>
+        <choose>
+          <when test="sortOrder == 'asc' ">
+            ORDER BY DATE ASC, CUST_OP_NM DESC
+          </when>
+          <otherwise>
+            ORDER BY DATE DESC, CUST_OP_NM DESC
+          </otherwise>
+        </choose>
+      </otherwise>
+    </choose>
+    <if test="rowNum != null and rowNum != ''">
+      LIMIT #{rowNum, jdbcType=INTEGER}
+    </if>
+    <if test="offset != null and offset != ''">
+      OFFSET #{offset, jdbcType=INTEGER}
+    </if>
+  </select>
+
+  <select id="getAdviserCount" parameterType="map" resultType="map">
+    SELECT /*getAdviserCount- 상담원별 통계 카운트*/
+    COUNT(*) AS totalCnt
+    FROM
+    (SELECT CUST_OP_ID, DATE
+    FROM (SELECT A.CUST_OP_ID AS CUST_OP_ID /*상담원 ID*/
+    , COUNT(A.CALL_ID) AS IN_CALL_COUNT /*인바운드 콜 카운트*/
+    , ROUND(SUM(A.DURATION)) AS IN_CALL_TIME /*인바운드 콜 타임*/
+    <choose>
+      <when test='checkBox1 == "monthly"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m') AS DATE
+      </when>
+      <when test='checkBox1 == "daily"'>
+        , DATE_FORMAT(A.START_TIME, '%Y-%m-%d') AS DATE
+      </when>
+    </choose>
+    , HOUR(A.START_TIME) as DATE_HOUR
+    , B.USER_NM
+    FROM CALL_HISTORY A
+    JOIN TN_USER B
+    ON A.CUST_OP_ID = B.USER_ID
+    WHERE 1=1
+    AND A.CALL_TYPE_CODE = 'CT0001' /* CT0001:인바운드, CT0002:아웃바운드 */
+    <choose>
+      <when test='checkBox1 == "monthly"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m') BETWEEN #{fromDate} AND #{toDate}
+      </when>
+      <when test='checkBox1 == "daily"'>
+        AND DATE_FORMAT(A.START_TIME, '%Y-%m-%d') BETWEEN #{fromDate} AND #{toDate}
+      </when>
+    </choose>
+    <if test='checkBox3 == "exception"'>
+      AND DAYOFWEEK(A.START_TIME) NOT IN ('1', '7') <!-- 제외 여부 -->
+    </if>
+    <choose>
+      <when test='multiple_select_yn == "Y"'>
+        AND A.CUST_OP_ID IN
+        <foreach collection="multiple_select" item="person" open="(" close=")" separator=",">
+          #{person}
+        </foreach>
+      </when>
+    </choose>
+    <if test="companyId != null and companyId != ''">
+      AND B.COMPANY_ID = #{companyId}
+    </if>
+    GROUP BY A.CUST_OP_ID, DATE, DATE_HOUR)T
+    <choose>
+      <when test='checkBox2=="mode1"'>
+        GROUP BY CUST_OP_ID, DATE
+        ORDER BY CUST_OP_ID, DATE, DATE_HOUR
+      </when>
+      <when test='checkBox2=="mode2"'>
+        GROUP BY DATE, CUST_OP_ID
+        ORDER BY DATE, DATE_HOUR, CUST_OP_ID
+      </when>
+    </choose>
+    )TT
+  </select>
+
+	<select id="getCompanyAdviserList"  parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO"  resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO">
+		SELECT USER_ID AS custOpId
+			 , USER_NM AS custOpNm
+		  FROM TN_USER
+		 WHERE COMPANY_ID = #{companyId}
+		 ORDER BY USER_ID
+	</select>
+
+  <select id="getIbStatsTypeSList" parameterType="map" resultType="map">
+    <choose>
+      <when test='checkBox1 == "weekly"'>
+        SELECT /*getIbStatsTypeSList - IB콜통계-문의유형 리스트 */
+        DATE_FORMAT(A.START_DT,'%Y-%m-%d') /*AS DATE*/
+        , SUM(IF(A.CONSULT_TYPE_CD = '01', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE01'
+        , SUM(IF(A.CONSULT_TYPE_CD = '0102', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE0102'
+        , SUM(IF(A.CONSULT_TYPE_CD = '010203', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE010203'
+        , SUM(IF(A.CONSULT_TYPE_CD = '02', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE02'
+        , SUM(IF(A.CONSULT_TYPE_CD = '0201', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE0201'
+        , SUM(IF(A.CONSULT_TYPE_CD = '020103', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE020103'
+        , SUM(IF(A.CONSULT_TYPE_CD = '03', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE03'
+        , SUM(IF(A.CONSULT_TYPE_CD = '0301', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE0301'
+        , SUM(IF(A.CONSULT_TYPE_CD = '030102', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE030102'
+        , case A.DAYS
+        when '1' then '일요일'
+        when '2' then '월요일'
+        when '3' then '화요일'
+        when '4' then '수요일'
+        when '5' then '목요일'
+        when '6' then '금요일'
+        when '7' then '토요일'
+        end /*as WEEK*/ AS DATE
+        FROM STAT_CALL_HISTORY_CONSULT_TYPE A
+        WHERE 1=1
+        <if test="toDate != null and toDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ <= ]]>
+          date_format(#{toDate},'%Y.%m.%d')
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ >= ]]>
+          date_format(#{fromDate},'%Y.%m.%d')
+        </if>
+        GROUP BY DATE_FORMAT(A.START_DT,'%Y%m%d')
+        ORDER BY A.DAYS
+      </when>
+
+      <otherwise>
+        SELECT /*getIbStatsTypeSList - IB콜통계-문의유형 리스트 */
+        <choose>
+          <when test='checkBox1 == "daily"'>
+            DATE_FORMAT(A.START_DT,'%Y-%m-%d') <!-- /* 검색 유형 - 일 단위 */  -->
+          </when>
+          <when test='checkBox1 == "monthly"'>
+            DATE_FORMAT(A.START_DT,'%Y-%m') <!-- /* 검색 유형 - 월 단위 */ -->
+          </when>
+        </choose>
+        AS DATE
+        , SUM(IF(A.CONSULT_TYPE_CD = '01', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE01'
+        , SUM(IF(A.CONSULT_TYPE_CD = '0102', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE0102'
+        , SUM(IF(A.CONSULT_TYPE_CD = '010203', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE010203'
+        , SUM(IF(A.CONSULT_TYPE_CD = '02', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE02'
+        , SUM(IF(A.CONSULT_TYPE_CD = '0201', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE0201'
+        , SUM(IF(A.CONSULT_TYPE_CD = '020103', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE020103'
+        , SUM(IF(A.CONSULT_TYPE_CD = '03', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE03'
+        , SUM(IF(A.CONSULT_TYPE_CD = '0301', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE0301'
+        , SUM(IF(A.CONSULT_TYPE_CD = '030102', A.CONSULT_TYPE_COUNT, 0)) AS 'TYPE030102'
+        FROM STAT_CALL_HISTORY_CONSULT_TYPE A
+        WHERE 1=1
+        <if test="toDate != null and toDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ <= ]]>
+          date_format(#{toDate},'%Y.%m.%d')
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ >= ]]>
+          date_format(#{fromDate},'%Y.%m.%d')
+        </if>
+        GROUP BY
+        <choose>
+          <when test='checkBox1 == "daily"'>
+            DATE_FORMAT(A.START_DT,'%Y%m%d') <!-- /* 검색 유형 - 일 단위 */  -->
+          </when>
+          <when test='checkBox1 == "monthly"'>
+            DATE_FORMAT(A.START_DT,'%Y%m') <!-- /* 검색 유형 - 월 단위 */ -->
+          </when>
+        </choose>
+        ORDER BY DATE DESC
+        LIMIT #{rowNum, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+      </otherwise>
+    </choose>
+  </select>
+
+
+  <select id="getIbStatsTypeCount" parameterType="map" resultType="map">
+    <choose>
+      <when test='checkBox1 == "weekly"'>
+        SELECT /*getIbStatsTypeCount - IB콜통계-문의유형 카운트*/
+        COUNT(*) AS totalCnt
+        FROM (
+        SELECT
+        A.START_DT
+        FROM STAT_CALL_HISTORY_CONSULT_TYPE A
+        WHERE 1=1
+        <if test="toDate != null and toDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ <= ]]>
+          date_format(#{toDate},'%Y.%m.%d')
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ >= ]]>
+          date_format(#{fromDate},'%Y.%m.%d')
+        </if>
+        GROUP BY
+        DATE_FORMAT(A.START_DT,'%Y%m%d'))AS t
+      </when>
+
+      <otherwise>
+        SELECT /*getIbStatsTypeCount - IB콜통계-문의유형 카운트*/
+        COUNT(*) AS totalCnt
+        FROM (
+        SELECT
+        A.START_DT
+        FROM STAT_CALL_HISTORY_CONSULT_TYPE A
+        WHERE 1=1
+        <if test="toDate != null and toDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ <= ]]>
+          date_format(#{toDate},'%Y.%m.%d')
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          <!-- 콜백일자 -->
+          AND date_format(A.START_DT,'%Y.%m.%d')   <![CDATA[ >= ]]>
+          date_format(#{fromDate},'%Y.%m.%d')
+        </if>
+        GROUP BY
+        <choose>
+          <when test='checkBox1 == "daily"'>
+            DATE_FORMAT(A.START_DT,'%Y%m%d') <!-- /* 검색 유형 - 일 단위 */  -->
+          </when>
+          <when test='checkBox1 == "monthly"'>
+            DATE_FORMAT(A.START_DT,'%Y%m') <!-- /* 검색 유형 - 월 단위 */ -->
+          </when>
+        </choose>
+        )AS t
+      </otherwise>
+    </choose>
+  </select>
+
+  <select id="getBoardCompanyId" parameterType="map" resultType="String">
+		SELECT TOP 1 COMPANY_ID /* getBoardCompanyId 대시보드  COMPANY_ID 조회 */
+		FROM TN_USER
+        WHERE USER_ID = #{sessId}
+	</select>
+
+  <select id="getBoardResCondition" parameterType="map" resultType="map">
+    SELECT /*getOpIbStateList - /상담 상단 상태바 조회 IB*/
+    TOTAL_CNT AS TOTAL_CNT,
+    BOT_CNT AS BOT_CNT,
+    BOT_CSR_CNT AS BOT_CSR_CNT,
+    ETC_CNT AS ETC_CNT,
+    USER_BOT_CNT AS USER_BOT_CNT,
+    USER_BOT_CSR_CNT AS USER_BOT_CSR_CNT,
+    USER_ETC_CNT AS USER_ETC_CNT,
+    BOT_CNT+BOT_CSR_CNT+ETC_CNT AS TOTAL_SUM,
+    TOTAL_CNT-(BOT_CNT+BOT_CSR_CNT+ETC_CNT) AS GIVE_UP_CNT,
+    USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT AS USER_TOTAL_CNT,
+    IIF(TOTAL_CNT=0 OR
+    (BOT_CNT+BOT_CSR_CNT+ETC_CNT)=0,0,ROUND((((BOT_CNT+BOT_CSR_CNT+ETC_CNT)/TOTAL_CNT)*100),1)) AS
+    PERSENTAGE,
+    ISNULL(CONVERT(VARCHAR, DATEADD(second,USER_TALK_TIME,0),108),'00:00') AS USER_TALK_TIME,
+    ISNULL(CONVERT(VARCHAR, DATEADD(second,IIF(USER_TALK_TIME=0 OR
+    (USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT)=0,0,(USER_TALK_TIME /
+    (USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT))),0),108),'00:00') AS AVR_TALK_TIME,
+    CUST_OP_STATUS,
+    OP_LOGIN_ID,
+    OP_USER_NM
+    FROM (SELECT COUNT(*) AS TOTAL_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0005', 1, 0)),0) AS BOT_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0010' OR A.CALL_STATUS='CS0031', 1, 0)),0) AS BOT_CSR_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0003', 1, 0)),0) AS ETC_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0005' AND A.CUST_OP_ID = #{sessId}, 1, 0)),0) AS USER_BOT_CNT
+    , ISNULL(SUM(IIF((A.CALL_STATUS='CS0010' OR A.CALL_STATUS='CS0031') AND A.CUST_OP_ID =
+    #{sessId}, 1, 0)),0) AS USER_BOT_CSR_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0003' AND A.CUST_OP_ID = #{sessId}, 1, 0)),0) AS USER_ETC_CNT
+    , ISNULL(SUM(IIF(A.CUST_OP_ID = #{sessId}, A.DURATION, 0)),0) AS USER_TALK_TIME
+    , (SELECT CUST_OP_STATUS FROM TN_USER WHERE USER_ID= #{sessId}) AS CUST_OP_STATUS
+    , (SELECT USER_ID FROM TN_USER WHERE USER_ID = #{sessId}) AS OP_LOGIN_ID
+    , (SELECT USER_NM FROM TN_USER WHERE USER_ID = #{sessId}) AS OP_USER_NM
+    FROM CALL_HISTORY A LEFT JOIN TN_USER B ON A.CUST_OP_ID=B.USER_ID
+    WHERE 1=1
+
+    <choose>
+      <when test='startDt != "" and startDt != null and endDt != "" and endDt != null'>
+        <![CDATA[
+					AND A.CALL_DATE <= CONVERT(VARCHAR, CAST(#{endDt} as date),120)
+					AND A.CALL_DATE >= CONVERT(VARCHAR(10), CAST(#{startDt} as date),120)
+				]]>
+      </when>
+      <otherwise>
+        <![CDATA[
+			 			AND A.CALL_DATE <= CONVERT(VARCHAR, GETDATE(),120)
+						AND A.CALL_DATE >= CONVERT(VARCHAR(10), GETDATE()-7,120)
+					]]>
+      </otherwise>
+    </choose>
+    AND A.CALL_TYPE_CODE ='CT0001'
+    <if test="companyId != 'All' ">
+      AND B.COMPANY_ID=#{companyId}
+    </if>
+    <if test='userAuthTy == "N" or userAuthTy == "G" '>
+      AND B.USER_ID = #{sessId}
+    </if>
+    ) T
+  </select>
+
+  <select id="getBoardCsCondition" parameterType="map" resultType="map">
+    SELECT /*getBoardCsCondition - 대시보드 상담현황 */
+    T1.IB_TOT_CNT
+    ,T1.OB_TOT_CNT
+    ,T1.IB_BOT_CSR_CNT
+    ,T1.IB_USER_CSR_CNT
+    ,T1.OB_BOT_CSR_CNT
+    ,T1.OB_USER_CSR_CNT
+    ,T1.BOT_WAIT_CNT
+    ,T2.USER_WAIT_CNT
+    ,T2.USER_ETC_CNT
+    ,T2.USER_REST_CNT
+    FROM
+    (
+    SELECT
+    COUNT(IIF(A.IS_INBOUND = 'Y', 1, NULL)) AS IB_TOT_CNT /*인바운드 tot*/
+    , COUNT(IIF(A.IS_INBOUND = 'N', 1, NULL)) AS OB_TOT_CNT /*아웃바운드 tot*/
+    , COUNT(IIF(A.STATUS='CS0002' AND A.IS_INBOUND = 'Y', 1, NULL)) AS IB_BOT_CSR_CNT /*인바운드 AI진행중*/
+    , COUNT(IIF(A.STATUS='CS0009' AND A.IS_INBOUND = 'Y', 1, NULL)) AS IB_USER_CSR_CNT /*인바운드 상담사
+    진행중*/
+    , COUNT(IIF(A.STATUS='CS0002' AND A.IS_INBOUND = 'N', 1, NULL)) AS OB_BOT_CSR_CNT /*아웃바운드
+    AI진행중*/
+    , COUNT(IIF(A.STATUS='CS0009' AND A.IS_INBOUND = 'N', 1, NULL)) AS OB_USER_CSR_CNT /*아웃바운드 상담사
+    진행중*/
+    , COUNT(IIF(A.STATUS='CS0001', 1, NULL)) AS BOT_WAIT_CNT /*소속회사 봇 수신대기*/
+    FROM SIP_ACCOUNT A
+    LEFT OUTER JOIN TN_USER B
+    ON A.CUST_OP_ID = B.USER_ID
+    WHERE 1=1
+    <if test="companyId != 'All' ">
+      AND B.COMPANY_ID = #{companyId}
+    </if>
+    <if test='userAuthTy == "N" or userAuthTy == "G" '>
+      AND B.USER_ID = #{sessId}
+    </if>
+    )T1
+    ,(
+    SELECT
+    COUNT(IIF(CUST_OP_STATUS='04', 1, NULL)) AS USER_WAIT_CNT /*소속회사 상담사 수신대기*/
+    , COUNT(IIF(CUST_OP_STATUS='01', 1, NULL)) AS USER_ETC_CNT /*소속회사 응대외 업무*/
+    , COUNT(IIF(CUST_OP_STATUS='02', 1, NULL)) AS USER_REST_CNT /*소속회사 응대외 휴게*/
+    FROM TN_USER
+    WHERE USE_AT = 'Y' AND DELETE_AT='N'
+    <if test="companyId != 'All' ">
+      AND COMPANY_ID = #{companyId}
+    </if>
+    <if test='userAuthTy == "N" or userAuthTy == "G" '>
+      AND USER_ID = #{sessId}
+    </if>
+    )T2
+  </select>
+
+  <select id="getBoardCsTypeCondition" parameterType="map" resultType="map">
+    SELECT /*getCsTypeCondition - 대시보드 문의유형 현황 */
+    A.CUST_OP_ID
+    ,A.CONSULT_TYPE_CD
+    ,A.CONSULT_TYPE_NM AS TYPE_COL_NM
+    ,count(A.CONSULT_TYPE_CD) AS CONSULT_TYPE_CNT
+    ,B.COMPANY_ID
+    ,C.CAMPAIGN_ID
+    <choose>
+      <when test='lang == "en"'>
+        ,D.CODE_NM_ENG AS CONSULT_TYPE_NM
+      </when>
+      <otherwise>
+        ,D.CODE_NM AS CONSULT_TYPE_NM
+      </otherwise>
+    </choose>
+    <choose>
+      <when test='searchType == "day"'>
+        ,DATE_ADD(#{startDt}, interval -1 day) AS COMPARE_SDT
+        ,DATE_ADD(#{endDt}, interval -1 day) AS COMPARE_EDT
+      </when>
+      <when test='searchType == "week"'>
+        ,DATE_ADD(#{startDt}, interval -7 day) AS COMPARE_SDT
+        ,DATE_ADD(#{endDt}, interval -7 day) AS COMPARE_EDT
+      </when>
+      <when test='searchType == "month"'>
+        ,DATE_ADD(#{startDt}, interval -1 month) AS COMPARE_SDT
+        ,DATE_ADD(#{endDt}, interval -1 month) AS COMPARE_EDT
+      </when>
+      <when test='searchType == "year"'>
+        ,DATE_ADD(#{startDt}, interval -1 year) AS COMPARE_SDT
+        ,DATE_ADD(#{endDt}, interval -1 year) AS COMPARE_EDT
+      </when>
+      <otherwise>
+      </otherwise>
+    </choose>
+    FROM STAT_CALL_HISTORY_CONSULT_TYPE A
+    LEFT OUTER JOIN TN_USER B
+    ON A.CUST_OP_ID = B.USER_ID
+    LEFT OUTER JOIN SIP_ACCOUNT C
+    ON A.CUST_OP_ID = C.CUST_OP_ID
+    LEFT OUTER JOIN CUST_CATEGORY_CD D
+    ON A.CONSULT_TYPE_CD = D.CODE
+    AND C.CAMPAIGN_ID = D.CAMPAIGN_ID
+    WHERE A.CONSULT_TYPE_CD != '999'
+    AND A.CONSULT_TYPE_CD IS NOT NULL
+    AND length(A.CONSULT_TYPE_CD) <![CDATA[ < ]]>  3
+    AND B.COMPANY_ID = #{companyId}
+    AND C.CAMPAIGN_ID IS NOT NULL AND C.CAMPAIGN_ID != ''
+    <choose>
+      <when test='searchType == "day"'>
+        AND A.START_DT BETWEEN DATE_ADD(DATE_FORMAT(#{startDt}, '%y-%m-%d 00:00:00'), interval -1
+        day)
+        AND DATE_ADD(DATE_FORMAT(#{endDt}, '%y-%m-%d 23:59:59'), interval -1 day)
+      </when>
+      <when test='searchType == "week"'>
+        AND A.START_DT BETWEEN DATE_ADD(DATE_FORMAT(#{startDt}, '%y-%m-%d 00:00:00'), interval -7
+        day)
+        AND DATE_ADD(DATE_FORMAT(#{endDt}, '%y-%m-%d 23:59:59'), interval -7 day)
+      </when>
+      <when test='searchType == "month"'>
+        AND A.START_DT BETWEEN DATE_ADD(DATE_FORMAT(#{startDt}, '%y-%m-%d 00:00:00'), interval -1
+        month)
+        AND DATE_ADD(DATE_FORMAT(#{endDt}, '%y-%m-%d 23:59:59'), interval -1 month)
+      </when>
+      <when test='searchType == "year"'>
+        AND A.START_DT BETWEEN DATE_ADD(DATE_FORMAT(#{startDt}, '%y-%m-%d 00:00:00'), interval -1
+        year)
+        AND DATE_ADD(DATE_FORMAT(#{endDt}, '%y-%m-%d 23:59:59'), interval -1 year)
+      </when>
+      <otherwise>
+        AND A.START_DT BETWEEN DATE_FORMAT(#{startDt}, '%y-%m-%d 00:00:00')
+        AND DATE_FORMAT(#{endDt}, '%y-%m-%d 23:59:59')
+      </otherwise>
+    </choose>
+    GROUP BY A.CONSULT_TYPE_CD
+    ORDER BY CONSULT_TYPE_CNT DESC
+    LIMIT 10
+  </select>
+
+  <select id="getBoardBotCondition" parameterType="map" resultType="map">
+    SELECT /*getBoardBotCondition - 대시보드 봇 현황 */
+    A.SIP_DOMAIN
+    , A.SIP_USER
+    , A.TEL_URI
+    , A.PBX_NAME
+    , A.STATUS
+    , A.CONTRACT_NO
+    , A.CUSTOMER_PHONE
+    , A.CAMPAIGN_ID
+    , A.IS_INBOUND
+    , A.CUST_OP_ID
+    , C.USER_NM AS CUST_OP_NM
+    , B.TEL_NO
+    , C.COMPANY_ID
+    FROM SIP_ACCOUNT A
+    LEFT OUTER JOIN CM_CONTRACT B
+    ON A.CONTRACT_NO = B.CONTRACT_NO
+    AND A.STATUS = 'CS0002'
+    LEFT OUTER JOIN TN_USER C
+    ON A.CUST_OP_ID = C.USER_ID
+    WHERE 1=1
+    <if test="companyId != 'All' ">
+      AND C.COMPANY_ID = #{companyId}
+    </if>
+    <if test='userAuthTy == "N" or userAuthTy == "G" '>
+      AND C.USER_ID = #{sessId}
+    </if>
+  </select>
+
+  <select id="getBoardCompanyName" parameterType="map" resultType="String">
+		SELECT COMPANY_NAME /* getBoardCompanyName 대시보드  COMPANY_Name 조회 */
+		FROM CM_COMPANY
+        WHERE COMPANY_ID = #{companyId}
+	</select>
+
+  <select id="getIbDashBoardCallTotalList" parameterType="map" resultType="map">
+    SELECT /*getOpIbStateList - /상담 상단 상태바 조회 IB*/
+    DATE,
+    TOTAL_CNT AS TOTAL_CNT,
+    BOT_CNT AS BOT_CNT,
+    BOT_CSR_CNT AS BOT_CSR_CNT,
+    ETC_CNT AS ETC_CNT,
+    USER_BOT_CNT AS USER_BOT_CNT,
+    USER_BOT_CSR_CNT AS USER_BOT_CSR_CNT,
+    USER_ETC_CNT AS USER_ETC_CNT,
+    BOT_CNT+BOT_CSR_CNT+ETC_CNT AS TOTAL_SUM,
+    TOTAL_CNT-(BOT_CNT+BOT_CSR_CNT+ETC_CNT) AS GIVE_UP_CNT,
+    USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT AS USER_TOTAL_CNT,
+    IIF(TOTAL_CNT=0 OR
+    (BOT_CNT+BOT_CSR_CNT+ETC_CNT)=0,0,ROUND((((BOT_CNT+BOT_CSR_CNT+ETC_CNT)/TOTAL_CNT)*100),1)) AS
+    PERSENTAGE,
+    ISNULL(CONVERT(VARCHAR, DATEADD(second,USER_TALK_TIME,0),108),'00:00') AS USER_TALK_TIME,
+    ISNULL(CONVERT(VARCHAR, DATEADD(second,IIF(USER_TALK_TIME=0 OR
+    (USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT)=0,0,(USER_TALK_TIME /
+    (USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT))),0),108),'00:00') AS AVR_TALK_TIME,
+    CUST_OP_STATUS,
+    OP_LOGIN_ID,
+    OP_USER_NM
+    FROM (
+    SELECT COUNT(*) AS TOTAL_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0005', 1, 0)),0) AS BOT_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0010' OR A.CALL_STATUS='CS0031', 1, 0)),0) AS BOT_CSR_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0003', 1, 0)),0) AS ETC_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0005' AND A.CUST_OP_ID = #{sessId}, 1, 0)),0) AS USER_BOT_CNT
+    , ISNULL(SUM(IIF((A.CALL_STATUS='CS0010' OR A.CALL_STATUS='CS0031') AND A.CUST_OP_ID =
+    #{sessId}, 1, 0)),0) AS USER_BOT_CSR_CNT
+    , ISNULL(SUM(IIF(A.CALL_STATUS='CS0003' AND A.CUST_OP_ID = #{sessId}, 1, 0)),0) AS USER_ETC_CNT
+    , ISNULL(SUM(IIF(A.CUST_OP_ID = #{sessId}, A.DURATION, 0)),0) AS USER_TALK_TIME
+    , (SELECT CUST_OP_STATUS FROM TN_USER WHERE USER_ID= #{sessId}) AS CUST_OP_STATUS
+    , (SELECT USER_ID FROM TN_USER WHERE USER_ID = #{sessId}) AS OP_LOGIN_ID
+    , (SELECT USER_NM FROM TN_USER WHERE USER_ID = #{sessId}) AS OP_USER_NM
+    , CONVERT(VARCHAR(10), A.CALL_DATE,120) AS DATE
+    FROM CALL_HISTORY A LEFT JOIN TN_USER B ON A.CUST_OP_ID=B.USER_ID
+    WHERE 1=1
+    <choose>
+      <when test='startDt != "" and startDt != null and endDt != "" and endDt != null'>
+        <![CDATA[
+					AND A.CALL_DATE <= CONVERT(VARCHAR, CAST(#{endDt} as date),120)
+					AND A.CALL_DATE >= CONVERT(VARCHAR(10), CAST(#{startDt} as date),120)
+				]]>
+      </when>
+      <otherwise>
+        <![CDATA[
+			 			AND A.CALL_DATE <= CONVERT(VARCHAR, GETDATE(),120)
+						AND A.CALL_DATE >= CONVERT(VARCHAR(10), GETDATE()-7,120)
+					]]>
+      </otherwise>
+    </choose>
+    AND A.CALL_TYPE_CODE ='CT0001'
+    <if test="companyId != 'All' ">
+      AND B.COMPANY_ID=#{companyId}
+    </if>
+    <if test='userAuthTy == "N" or userAuthTy == "G" '>
+      AND B.USER_ID = #{sessId}
+    </if>
+    GROUP BY CONVERT(VARCHAR(10), A.CALL_DATE,120)
+    ) T
+  </select>
+
+  <select id="getObStatsTotalList" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+    WITH DUMY
+    AS
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        (
+        SELECT CAST(#{fromDate} AS DATETIME) TIME_INTERVAL
+        UNION ALL
+        SELECT DATEADD(HH, 1, TIME_INTERVAL)
+        FROM DUMY
+        WHERE DATEADD(HH, 1, TIME_INTERVAL) <![CDATA[ < ]]> CAST(#{toDate} AS DATETIME)
+        )
+      </when>
+      <otherwise>
+        (
+        SELECT CAST(#{fromDate} AS DATETIME) TIME_INTERVAL
+        UNION ALL
+        SELECT TIME_INTERVAL + 1
+        FROM DUMY
+        WHERE TIME_INTERVAL + 1 <![CDATA[ < ]]> CAST(#{toDate} AS DATETIME)
+        )
+      </otherwise>
+    </choose>
+    SELECT T2.DATE AS startDate
+    , SUBSTRING(T2.TIME, 0,3) AS startTime
+    , ISNULL((SELECT CAMPAIGN_NM FROM CM_CAMPAIGN WHERE CAMPAIGN_ID = CAMP_ID), '-') AS campaignNm
+    , ISNULL(T1.CALL_TOTAL, 0) AS callTotal
+    , ISNULL(T1.CALL_AI, 0) AS callAi
+    , ISNULL(T1.CALL_AGENT, 0) AS callAgent
+    , ISNULL(T1.ETC, 0) AS etc
+    , ISNULL(T1.GIVE_UP, 0) AS giveUp
+    <!--  , ISNULL(T1.CALL_STOP, 0)															AS callStop -->
+    <!--  , ISNULL(T1.CALL_NORESP, 0)														AS callNoresp -->
+    , ISNULL(CONVERT(NVARCHAR, DATEADD(S, T1.AVG_DURATION, ''), 8), '-') AS avgDuration
+    FROM (
+    SELECT C.CAMPAIGN_ID AS CAMP_ID
+    , COUNT(*) AS CALL_TOTAL
+    , COUNT(CASE WHEN CALL_STATUS = 'CS0005' THEN 1 END) AS CALL_AI
+    , COUNT(CASE WHEN CALL_STATUS = 'CS0010' OR CALL_STATUS='CS0031' THEN 1 END) AS CALL_AGENT
+    , COUNT(CASE WHEN CALL_STATUS = 'CS0003' THEN 1 END) AS ETC
+    , COUNT(CASE WHEN CALL_STATUS NOT IN('CS0005', 'CS0010', 'CS0031', 'CS0003') THEN 1 END) AS
+    GIVE_UP
+    <!--  , COUNT(CASE WHEN CALL_STATUS = 'CS0003' THEN 1 END) AS CALL_STOP -->
+    <!--  , COUNT(CASE WHEN CALL_STATUS = 'CS0004' THEN 1 END) AS CALL_NORESP -->
+    , ROUND(AVG(DURATION), 0) AS AVG_DURATION
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        , CONVERT(NVARCHAR(13), START_TIME, 120) AS CALL_TIME
+      </when>
+      <otherwise>
+        , CONVERT(NVARCHAR(10), START_TIME, 120) AS CALL_TIME
+      </otherwise>
+    </choose>
+    FROM CALL_HISTORY H
+    LEFT JOIN CM_CONTRACT C
+    ON H.CONTRACT_NO = C.CONTRACT_NO
+    LEFT JOIN TN_USER U
+    ON H.CUST_OP_ID = U.USER_ID
+    WHERE 1=1
+    AND H.CALL_TYPE_CODE = 'CT0002'
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        <if test="fromDate != null and fromDate != '' ">
+          AND H.START_TIME <![CDATA[ >= ]]> #{fromDate}
+        </if>
+        <if test="toDate != null and toDate != '' ">
+          AND H.START_TIME <![CDATA[ <= ]]> #{toDate}
+        </if>
+      </when>
+      <otherwise>
+        <if test="toDate != null and toDate != '' ">
+          AND CONVERT(NVARCHAR(10), H.START_TIME, 120) <![CDATA[ <= ]]> #{toDate}
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          AND CONVERT(NVARCHAR(10), H.START_TIME, 120) <![CDATA[ >= ]]> #{fromDate}
+        </if>
+      </otherwise>
+    </choose>
+    <choose>
+      <when test="campaignId != null and campaignId != ''">
+        AND C.CAMPAIGN_ID = #{campaignId}
+      </when>
+      <otherwise>
+        AND C.CAMPAIGN_ID in (
+        <foreach collection="campaignIdList" item="campaign_Id" index="index" separator=",">
+          #{campaign_Id}
+        </foreach>
+        )
+      </otherwise>
+    </choose>
+    <if test="companyId != null and companyId != '' ">
+      AND U.COMPANY_ID = #{companyId}
+    </if>
+    <if test="custOpId != null and custOpId != '' ">
+      AND H.CUST_OP_ID = #{custOpId}
+    </if>
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        GROUP BY CONVERT(NVARCHAR(13), START_TIME, 120), C.CAMPAIGN_ID
+      </when>
+      <otherwise>
+        GROUP BY CONVERT(NVARCHAR(10), START_TIME, 120), C.CAMPAIGN_ID
+      </otherwise>
+    </choose>
+    ) T1
+    RIGHT JOIN
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        (SELECT CONVERT(NVARCHAR(13), TIME_INTERVAL, 120) AS TIME_INTERVAL
+        , CONVERT(NVARCHAR(10), TIME_INTERVAL, 120) AS DATE
+        , CONVERT(NVARCHAR(2), TIME_INTERVAL, 8) + ':00:00' AS TIME
+        FROM DUMY ) T2 /*기간의 1시간 주기 더미 테이블*/
+        ON T1.CALL_TIME = T2.TIME_INTERVAL
+      </when>
+      <otherwise>
+        (SELECT CONVERT(NVARCHAR(10), TIME_INTERVAL, 120) AS TIME_INTERVAL
+        , CONVERT(NVARCHAR(10), TIME_INTERVAL, 120) AS DATE
+        , CONVERT(NVARCHAR(2), TIME_INTERVAL, 8) + ':00:00' AS TIME
+        FROM DUMY ) T2 /*기간의 1일 주기 더미 테이블*/
+        ON T1.CALL_TIME = T2.TIME_INTERVAL
+        WHERE T1.CALL_TIME IS NOT NULL
+      </otherwise>
+    </choose>
+    <choose>
+      <when test="sortOrder == 'asc' and timeSortOrder == 'asc'">
+        ORDER BY startDate ASC, startTime ASC, campaignNm
+      </when>
+      <when test="sortOrder == 'desc' and timeSortOrder == 'asc'">
+        ORDER BY startDate DESC, startTime ASC, campaignNm
+      </when>
+      <when test="sortOrder == 'asc' and timeSortOrder == 'desc'">
+        ORDER BY startDate ASC, startTime DESC, campaignNm
+      </when>
+      <otherwise>
+        ORDER BY startDate DESC, startTime DESC, campaignNm
+      </otherwise>
+    </choose>
+    <if test="offset != null and rowNum != null and rowNum != 0">
+      OFFSET #{offset, jdbcType=INTEGER} ROWS FETCH NEXT #{rowNum, jdbcType=INTEGER} ROWS ONLY
+    </if>
+    OPTION(MAXRECURSION 0)
+  </select>
+
+	<select id="getObStatsCount" resultType="int" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+    WITH DUMY
+    AS
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        (
+        SELECT CAST(#{fromDate} AS DATETIME) TIME_INTERVAL
+        UNION ALL
+        SELECT DATEADD(HH, 1, TIME_INTERVAL)
+        FROM DUMY
+        WHERE DATEADD(HH, 1, TIME_INTERVAL) <![CDATA[ < ]]> CAST(#{toDate} AS DATETIME)
+        )
+      </when>
+      <otherwise>
+        (
+        SELECT CAST(#{fromDate} AS DATETIME) TIME_INTERVAL
+        UNION ALL
+        SELECT TIME_INTERVAL + 1
+        FROM DUMY
+        WHERE TIME_INTERVAL + 1 <![CDATA[ < ]]> CAST(#{toDate} AS DATETIME)
+        )
+      </otherwise>
+    </choose>
+    SELECT COUNT(*) AS totalCount
+    FROM (
+    SELECT TIME_INTERVAL, ISNULL(CAMP_ID, 0) AS CAMP_ID
+    FROM (
+    SELECT C.CAMPAIGN_ID AS CAMP_ID
+    , COUNT(*) AS CALL_TOTAL
+    , COUNT(CASE WHEN CALL_STATUS = 'CS0005' THEN 1 END) AS CALL_AI
+    , COUNT(CASE WHEN CALL_STATUS = 'CS0010' OR CALL_STATUS='CS0031' THEN 1 END) AS CALL_AGENT
+    , COUNT(CASE WHEN CALL_STATUS = 'CS0003' THEN 1 END) AS ETC
+    , COUNT(CASE WHEN CALL_STATUS NOT IN('CS0005', 'CS0010', 'CS0031', 'CS0003') THEN 1 END) AS
+    GIVE_UP
+    <!--  , COUNT(CASE WHEN CALL_STATUS = 'CS0003' THEN 1 END) AS CALL_STOP -->
+    <!--  , COUNT(CASE WHEN CALL_STATUS = 'CS0004' THEN 1 END) AS CALL_NORESP -->
+    , ROUND(AVG(DURATION), 0) AS AVG_DURATION
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        , CONVERT(NVARCHAR(13), START_TIME, 120) AS CALL_TIME
+      </when>
+      <otherwise>
+        , CONVERT(NVARCHAR(10), START_TIME, 120) AS CALL_TIME
+      </otherwise>
+    </choose>
+    FROM CALL_HISTORY H
+    LEFT JOIN CM_CONTRACT C
+    ON H.CONTRACT_NO = C.CONTRACT_NO
+    LEFT JOIN TN_USER U
+    ON H.CUST_OP_ID = U.USER_ID
+    WHERE 1=1
+    AND H.CALL_TYPE_CODE = 'CT0002'
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        <if test="fromDate != null and fromDate != '' ">
+          AND H.START_TIME <![CDATA[ >= ]]> #{fromDate}
+        </if>
+        <if test="toDate != null and toDate != '' ">
+          AND H.START_TIME <![CDATA[ <= ]]> #{toDate}
+        </if>
+      </when>
+      <otherwise>
+        <if test="toDate != null and toDate != '' ">
+          AND CONVERT(NVARCHAR(10), H.START_TIME, 120) <![CDATA[ <= ]]> #{toDate}
+        </if>
+        <if test="fromDate != null and fromDate != '' ">
+          AND CONVERT(NVARCHAR(10), H.START_TIME, 120) <![CDATA[ >= ]]> #{fromDate}
+        </if>
+      </otherwise>
+    </choose>
+    <choose>
+      <when test="campaignId != null and campaignId != ''">
+        AND C.CAMPAIGN_ID = #{campaignId}
+      </when>
+      <otherwise>
+        AND C.CAMPAIGN_ID in (
+        <foreach collection="campaignIdList" item="campaign_Id" index="index" separator=",">
+          #{campaign_Id}
+        </foreach>
+        )
+      </otherwise>
+    </choose>
+    <if test="companyId != null and companyId != '' ">
+      AND U.COMPANY_ID = #{companyId}
+    </if>
+    <if test="custOpId != null and custOpId != '' ">
+      AND H.CUST_OP_ID = #{custOpId}
+    </if>
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        GROUP BY CONVERT(NVARCHAR(13), START_TIME, 120), C.CAMPAIGN_ID
+      </when>
+      <otherwise>
+        GROUP BY CONVERT(NVARCHAR(10), START_TIME, 120), C.CAMPAIGN_ID
+      </otherwise>
+    </choose>
+    ) T1
+    RIGHT JOIN
+    <choose>
+      <when test='minuteUnit == "hourly"'>
+        (SELECT CONVERT(NVARCHAR(13), TIME_INTERVAL, 120) AS TIME_INTERVAL
+        , CONVERT(NVARCHAR(10), TIME_INTERVAL, 120) AS DATE
+        , CONVERT(NVARCHAR(2), TIME_INTERVAL, 8) + ':00:00' AS TIME
+        FROM DUMY ) T2 /*기간의 1시간 주기 더미 테이블*/
+        ON T1.CALL_TIME = T2.TIME_INTERVAL
+      </when>
+      <otherwise>
+        (SELECT CONVERT(NVARCHAR(10), TIME_INTERVAL, 120) AS TIME_INTERVAL
+        , CONVERT(NVARCHAR(10), TIME_INTERVAL, 120) AS DATE
+        , CONVERT(NVARCHAR(2), TIME_INTERVAL, 8) + ':00:00' AS TIME
+        FROM DUMY ) T2 /*기간의 1일 주기 더미 테이블*/
+        ON T1.CALL_TIME = T2.TIME_INTERVAL
+        WHERE T1.CALL_TIME IS NOT NULL
+      </otherwise>
+    </choose>
+    ) T
+    OPTION(MAXRECURSION 0)
+  </select>
+
+  <select id="getCampaignIdList" resultType="String" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+    SELECT A.CAMPAIGN_ID
+    FROM CM_CAMPAIGN A
+    , CM_COMPANY B
+    , CM_COMPANY_CAMPAIGNS C
+    <if test="custOpId != null and custOpId != ''">
+      , SIP_ACCOUNT D
+    </if>
+    WHERE A.CAMPAIGN_ID = C.CAMPAIGN_ID
+    AND C.COMPANY_ID = B.COMPANY_ID
+    AND B.COMPANY_ID = #{companyId}
+    <if test="custOpId != null and custOpId != ''">
+      AND A.CAMPAIGN_ID = D.CAMPAIGN_ID
+      AND D.CUST_OP_ID = #{custOpId}
+    </if>
+  </select>
+	
+	<select id="getColumnName" parameterType="String" resultType="String">
+		SELECT COLUMN_KOR
+		FROM CUST_DATA_CLASS
+		WHERE CUST_DATA_CLASS_ID = #{custDataId}
+	</select>
+	
+	<select id="getChatBotList" parameterType="String" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+		SELECT botId
+		 FROM BotMapping
+		WHERE 1=1
+		<if test="_parameter  != null and _parameter !=''">
+		  AND companyId = #{value}
+		</if>
+		GROUP BY BOT_ID
+	</select>
+
+  <select id="getInspectList" parameterType="map" resultType="map">
+		SELECT /* getInspectList */
+					 ISNULL(INSPECT_RESULT, '') AS INSPECT_RESULT,
+					 ISNULL(INSPECT_MEMO, '') AS INSPECT_MEMO,
+					 ISNULL(INSPECT_UPDATED_DTM, '') AS INSPECT_UPDATED_DTM,
+					 ISNULL(INSPECTOR, '') AS INSPECTOR
+			FROM CALL_HISTORY
+		 WHERE CALL_ID = #{callId}
+  </select>
+
+  <update id="updateInspectInfo" parameterType="map">
+    UPDATE CALL_HISTORY
+			 SET INSPECTOR = #{inspector},
+				 	 INSPECT_RESULT = #{inspectResult},
+				   INSPECT_MEMO = #{inspectMemo},
+				   INSPECT_UPDATED_DTM = GETDATE()
+		 WHERE CALL_ID = #{callId}
+  </update>
+</mapper>

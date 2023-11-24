@@ -1,0 +1,897 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.ConsultingMapper">
+
+	<select id="getOpIbStateList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO"	resultType="map">
+		SELECT /*getOpIbStateList - /상담 상단 상태바 조회 IB*/
+			TOTAL_CNT AS TOTAL_CNT,
+			BOT_CNT AS BOT_CNT,
+			BOT_CSR_CNT AS BOT_CSR_CNT,
+			ETC_CNT AS ETC_CNT,
+			TOTAL_SCENARIO_CNT AS TOTAL_SCENARIO_CNT,
+			USER_BOT_CNT AS USER_BOT_CNT,
+			USER_BOT_CSR_CNT AS USER_BOT_CSR_CNT,
+			USER_ETC_CNT AS USER_ETC_CNT,
+			BOT_CNT+BOT_CSR_CNT+ETC_CNT AS TOTAL_SUM,
+			USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT AS USER_TOTAL_CNT,
+			ISNULL(CONVERT(VARCHAR, DATEADD(second,USER_TALK_TIME,0),108),'00:00') AS USER_TALK_TIME,
+			USER_SCENARIO_CNT AS USER_SCENARIO_CNT,
+			ISNULL(CONVERT(VARCHAR, DATEADD(second,IIF(USER_TALK_TIME=0 OR (USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT)=0,0,(USER_TALK_TIME / (USER_BOT_CNT+USER_BOT_CSR_CNT+USER_ETC_CNT))),0),108),'00:00') AS AVR_TALK_TIME,
+			CUST_OP_STATUS,
+			CHAT_CONSULT_STATUS,
+			OP_LOGIN_ID,
+			OP_USER_NM
+		FROM (SELECT COUNT(*) AS TOTAL_CNT
+			, ISNULL(SUM(IIF(A.CALL_STATUS='CS0005', 1, 0)),0) AS BOT_CNT
+			, ISNULL(SUM(IIF(A.CALL_STATUS='CS0010' OR A.CALL_STATUS='CS0031', 1, 0)),0) AS BOT_CSR_CNT
+			, ISNULL(SUM(IIF(A.CALL_STATUS='CS0003', 1, 0)),0) AS ETC_CNT	
+			, ISNULL(SUM(IIF(A.SCENARIO_RESULT = 'Y', 1,0)),0) AS TOTAL_SCENARIO_CNT
+			, ISNULL(SUM(IIF(A.CALL_STATUS='CS0005' AND A.CUST_OP_ID = #{sessId}, 1, 0)),0) AS USER_BOT_CNT
+			, ISNULL(SUM(IIF((A.CALL_STATUS='CS0010' OR A.CALL_STATUS='CS0031') AND A.CUST_OP_ID = #{sessId}, 1, 0)),0) AS USER_BOT_CSR_CNT
+			, ISNULL(SUM(IIF(A.CALL_STATUS='CS0003' AND A.CUST_OP_ID = #{sessId}, 1, 0)),0) AS USER_ETC_CNT	 
+			, ISNULL(SUM(IIF(A.CUST_OP_ID = #{sessId}, A.DURATION, 0)),0) AS USER_TALK_TIME
+			, ISNULL(SUM(IIF(A.SCENARIO_RESULT = 'Y' AND A.CUST_OP_ID = #{sessId},1 ,0)),0) AS USER_SCENARIO_CNT
+			, (SELECT CUST_OP_STATUS FROM TN_USER WHERE USER_ID= #{sessId}) AS CUST_OP_STATUS
+			, (SELECT CHAT_CONSULT_STATUS FROM TN_USER WHERE USER_ID= #{sessId}) AS CHAT_CONSULT_STATUS
+			, (SELECT USER_ID FROM TN_USER WHERE USER_ID = #{sessId}) AS OP_LOGIN_ID
+			, (SELECT USER_NM FROM TN_USER WHERE USER_ID = #{sessId}) AS OP_USER_NM
+			FROM CALL_HISTORY A LEFT JOIN TN_USER B ON A.CUST_OP_ID=B.USER_ID
+		WHERE 1=1
+			<![CDATA[
+			AND A.CALL_DATE <= CONVERT(VARCHAR, GETDATE(),120)
+			AND A.CALL_DATE >= CONVERT(VARCHAR(10), GETDATE(),120)
+			AND A.CALL_TYPE_CODE ='CT0001'
+			AND B.COMPANY_ID=(SELECT COMPANY_ID FROM TN_USER WHERE USER_ID=#{sessId})
+			]]>
+		) T
+	</select>
+
+	<select id="getOpTotalObStateList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO"	resultType="map">
+		SELECT (SELECT COUNT(C.CUST_ID) 
+				  FROM (SELECT A.CUST_ID
+						  FROM CM_CONTRACT A RIGHT JOIN CALL_HISTORY B ON A.CONTRACT_NO = B.CONTRACT_NO
+						 WHERE B.CUST_OP_ID IN (SELECT USER_ID FROM TN_USER WHERE COMPANY_ID = #{schCompanyId})
+						   AND B.CALL_TYPE_CODE = 'CT0002' 
+						   AND A.CUST_ID IS NOT NULL
+						 GROUP BY A.CUST_ID) C)																		AS TOTAL_DB_CNT
+			 , ISNULL(TOTAL_TRY_CNT, 0)																				AS TOTAL_TRY_CNT
+			 , ISNULL(TOTAL_CALL_CNT, 0)																			AS TOTAL_CALL_CNT
+			 , ISNULL(TOTAL_SUC_CNT, 0)																				AS TOTAL_SUC_CNT
+			 , ISNULL(TOTAL_SCENARIO_CNT, 0)																		AS TOTAL_SCENARIO_CNT
+			 , ISNULL(ROUND(convert(float,TOTAL_TRY_CNT) / DATEDIFF(hour,CONVERT(VARCHAR(10), GETDATE(),120) +' 09:00', CONVERT(VARCHAR(10), GETDATE(),120)), 1), 0)	AS TOTAL_CPH
+			 , ISNULL(ROUND(convert(float,TOTAL_SUC_CNT) / DATEDIFF(hour,CONVERT(VARCHAR(10), GETDATE(),120) +' 09:00', CONVERT(VARCHAR(10), GETDATE(),120)), 1), 0)	AS TOTAL_SPH
+		  FROM (SELECT COUNT(CALL_ID) AS TOTAL_TRY_CNT
+					  , SUM(IIF(CALL_STATUS IN ('CS0002', 'CS0009'), 1, 0)) AS TOTAL_CALL_CNT
+					  , SUM(IIF(DIAL_RESULT = '200' OR DIAL_RESULT IS NULL AND CALL_ID IS NOT NULL, 1, 0)) AS TOTAL_SUC_CNT
+					  , SUM(IIF(SCENARIO_RESULT = 'Y', 1, 0)) AS TOTAL_SCENARIO_CNT
+				  FROM CALL_HISTORY 
+				 WHERE 1=1
+				   AND CAST(CALL_DATE AS DATE) = CAST(GETDATE() AS DATE)
+				   AND CUST_OP_ID IN (SELECT USER_ID FROM TN_USER WHERE COMPANY_ID = #{schCompanyId})
+				   AND CALL_TYPE_CODE = 'CT0002' <!-- AND A.IS_INBOUND = 'N' -->  <!-- AND B.CALL_TYPE_CODE = 'CT0002' -->
+				) AA
+	</select>
+
+	<select id="getOpTotalObStateList_before" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO"	resultType="map">
+		select /*getOpTotalObStateList - 상담 상단 상태바 조회 OB TOTAL*/
+		      MAX(IIF(code = 0, cnt, 0)) as TOTAL_DB_CNT
+		    , MAX(IIF(code = 1, cnt, 0)) as TOTAL_TRY_CNT
+		    , MAX(IIF(code = 2, cnt, 0)) as TOTAL_CALL_CNT
+		    , MAX(IIF(code = 3, cnt, 0)) as TOTAL_SUC_CNT
+		    , MAX(IIF(code = 4, cnt, 0)) as TOTAL_CPH
+		    , MAX(IIF(code = 5, cnt, 0)) as TOTAL_SPH
+		from
+		    (
+		    select 0 as code, count(*) as cnt
+		    from CM_CONTRACT a
+		    where CAST(a.UPDATED_DTM AS DATE) = CAST(GETDATE() AS DATE)
+		    union all
+		    select 1 as code, count(*) as cnt
+		    from CM_CONTRACT a
+		    where CAST(a.UPDATED_DTM AS DATE) = CAST(GETDATE() AS DATE) and a.CALL_TRY_COUNT > 0
+		    union all
+		    select 2 as code, count(*) as cnt
+		    from CM_CONTRACT a, CALL_HISTORY b
+		    where CAST(a.UPDATED_DTM AS DATE) = CAST(GETDATE() AS DATE) and a.CONTRACT_NO = b.CONTRACT_NO and b.CALL_STATUS != 'CS_0003'
+		    union all
+		    select 3 as code, count(*) as cnt
+		    from CM_CONTRACT a, CALL_HISTORY b
+		    where CAST(a.UPDATED_DTM AS DATE) = CAST(GETDATE() AS DATE) and a.CONTRACT_NO = b.CONTRACT_NO and b.CALL_STATUS in ('CS_0005', 'CS_0010')
+		    union all
+		    select 4 as code, ROUND(count(*) / TIMESTAMPDIFF(hour, concat(date(GETDATE()), ' 09:00'), GETDATE()), 0) as cnt
+		    from CM_CONTRACT a
+		    where CAST(a.UPDATED_DTM AS DATE) = CAST(GETDATE() AS DATE) and a.CALL_TRY_COUNT > 0
+		    union all
+		    select 5 as code, ROUND(count(*) / TIMESTAMPDIFF(hour, concat(date(GETDATE()), ' 09:00'), GETDATE()), 0) as cnt
+		    from CM_CONTRACT a, CALL_HISTORY b
+		    where CAST(a.UPDATED_DTM AS DATE) = CAST(GETDATE() AS DATE) and a.CONTRACT_NO = b.CONTRACT_NO and b.CALL_STATUS in ('CS_0005', 'CS_0010')
+		    ) as t
+	</select>
+
+	<select id="getOpUserObStateList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO"	resultType="map">
+		SELECT ISNULL(USER_TRY_CNT, 0)																			AS USER_TRY_CNT
+			 , ISNULL(USER_CALL_CNT, 0)																			AS USER_CALL_CNT
+			 , ISNULL(USER_SUC_CNT, 0)																			AS USER_SUC_CNT
+			 , ISNULL(USER_DIAL, 0)																				AS USER_DIAL
+			 , ISNULL(USER_SCENARIO_CNT, 0)																	AS USER_SCENARIO_CNT
+			 , ISNULL(ROUND(USER_DIAL / DATEDIFF(hour,CONVERT(VARCHAR(10), GETDATE(),120) +' 09:00', CONVERT(VARCHAR(10), GETDATE(),120)), 1), 0)	AS USER_DPH
+			 , ISNULL(ROUND(USER_TRY_CNT / DATEDIFF(hour,CONVERT(VARCHAR(10), GETDATE(),120) +' 09:00', CONVERT(VARCHAR(10), GETDATE(),120)), 1), 0)	AS USER_CPH
+			 , ISNULL(ROUND(USER_SUC_CNT / DATEDIFF(hour,CONVERT(VARCHAR(10), GETDATE(),120) +' 09:00', CONVERT(VARCHAR(10), GETDATE(),120)), 1), 0)	AS USER_SPH
+			 , ISNULL(OP_LOGIN_ID, #{sessId}) as OP_LOGIN_ID
+		  FROM (
+				SELECT COUNT(CALL_ID) AS USER_TRY_CNT
+					  , SUM(IIF(CALL_STATUS IN ('CS0002', 'CS0009'), 1, 0)) AS USER_CALL_CNT
+					  , SUM(IIF(DIAL_RESULT = '200' OR DIAL_RESULT IS NULL AND CALL_ID IS NOT NULL, 1, 0)) AS USER_SUC_CNT
+					  , SUM(IIF(SCENARIO_RESULT = 'Y', 1, 0)) AS USER_SCENARIO_CNT
+					  , COUNT(CALL_ID) AS USER_DIAL
+					  , MAX(CUST_OP_ID) AS OP_LOGIN_ID
+				  FROM CALL_HISTORY
+				 WHERE 1=1
+				   AND CAST(CALL_DATE AS DATE) = CAST(GETDATE() AS DATE)
+				   AND CUST_OP_ID = #{sessId}
+				   AND CALL_TYPE_CODE = 'CT0002' <!-- AND A.IS_INBOUND = 'N' -->
+				) AA
+	</select>
+	
+	<select id="getOpUserObStateList_before" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO"	resultType="map">
+	select /*getOpUserObStateList - 상담 상단 상태바 조회 OB USER*/
+		      MAX(IIF(code = 0, cnt, 0)) as USER_TRY_CNT
+		    , MAX(IIF(code = 1, cnt, 0)) as USER_CALL_CNT
+		    , MAX(IIF(code = 2, cnt, 0)) as USER_SUC_CNT
+		    , MAX(IIF(code = 3, cnt, 0)) as USER_DIAL
+		    , MAX(IIF(code = 4, cnt, 0)) as USER_DPH
+		    , MAX(IIF(code = 5, cnt, 0)) as USER_CPH
+		    , MAX(IIF(code = 6, cnt, 0)) as USER_SPH
+		    , (SELECT USER_ID FROM TN_USER WHERE USER_ID = #{sessId}) AS OP_LOGIN_ID
+		from
+		    (
+		    select 0 as code, count(*) as cnt
+		    from CM_CONTRACT a
+		    where date(a.UPDATED_DTM) = date(GETDATE()) and a.CALL_TRY_COUNT > 0 and a.CUST_OP_ID = #{sessId}
+		    union all
+		    select 1 as code, count(*) as cnt
+		    from CM_CONTRACT a, CALL_HISTORY b
+		    where date(a.UPDATED_DTM) = date(GETDATE()) and a.CONTRACT_NO = b.CONTRACT_NO and b.CALL_STATUS != 'CS_0003' and a.CUST_OP_ID = #{sessId}
+		    union all
+		    select 2 as code, count(*) as cnt
+		    from CM_CONTRACT a, CALL_HISTORY b
+		    where date(a.UPDATED_DTM) = date(GETDATE()) and a.CONTRACT_NO = b.CONTRACT_NO and b.CALL_STATUS in ('CS_0005', 'CS_0010') and a.CUST_OP_ID = #{sessId}
+		    union all
+		    select 3 as code, ISNULL(sum(a.CALL_TRY_COUNT), 0) as cnt
+		    from CM_CONTRACT a
+		    where date(a.UPDATED_DTM) = date(GETDATE()) and a.CUST_OP_ID = #{sessId}
+		    union all
+		    select 4 as code, ROUND(ISNULL(sum(a.CALL_TRY_COUNT) / TIMESTAMPDIFF(hour, concat(date(GETDATE()), ' 09:00'), GETDATE()), 0), 0) as cnt
+		    from CM_CONTRACT a
+		    where date(a.UPDATED_DTM) = date(GETDATE()) and a.CALL_TRY_COUNT > 0 and a.CUST_OP_ID = #{sessId}
+		    union all
+		    select 5 as code, ROUND(count(*) / TIMESTAMPDIFF(hour, concat(date(GETDATE()), ' 09:00'), GETDATE()), 0) as cnt
+		    from CM_CONTRACT a
+		    where date(a.UPDATED_DTM) = date(GETDATE()) and a.CALL_TRY_COUNT > 0 and a.CUST_OP_ID = #{sessId}
+		    union all
+		    select 6 as code, ROUND(count(*) / TIMESTAMPDIFF(hour, concat(date(GETDATE()), ' 09:00'), GETDATE()), 0) as cnt
+		    from CM_CONTRACT a, CALL_HISTORY b
+		    where date(a.UPDATED_DTM) = date(GETDATE()) and a.CONTRACT_NO = b.CONTRACT_NO and b.CALL_STATUS in ('CS_0005', 'CS_0010') and a.CUST_OP_ID = #{sessId}
+		   	) as t
+	</select>
+
+	<select id="getUserChatList" parameterType="map"	resultType="map">
+		SELECT /*getUserChatList - 고객 채팅정보리스트를 조회*/
+		         A.STT_RESULT_DETAIL_ID
+		       , A.STT_RESULT_ID
+		       , A.CALL_ID
+		       , A.SPEAKER_CODE
+		       , A.SENTENCE_ID
+		       , A.SENTENCE
+		       , A.START_TIME
+		       , A.END_TIME
+		       , A.IGNORED
+		       , A.CREATED_DTM
+		FROM     CM_STT_RSLT_DETAIL A
+		       , CM_CONTRACT B
+		WHERE    A.CALL_ID     = B.LAST_CALL_ID
+		AND      B.CONTRACT_NO = #{CONTRACT_NO}
+		ORDER BY A.STT_RESULT_DETAIL_ID, A.SENTENCE_ID
+	</select>
+
+	<select id="getUserCampSList" parameterType="map"	resultType="map">
+		SELECT /*getUserCampSList - 고객 캠패인스코어 조회*/
+		         A.SEQ_NUM
+		       , A.CALL_ID
+		       , A.CONTRACT_NO
+		       , A.INFO_SEQ
+		       , A.INFO_TASK
+		       , A.TASK_VALUE
+		       , A.REVIEW_COMMENT
+		       , A.CREATED_DTM
+		       , A.UPDATED_DTM
+		       , A.CAMPAIGN_ID
+		FROM     CM_CAMPAIGN_SCORE A
+		WHERE    1=1
+			AND A.CONTRACT_NO = #{CONTRACT_NO}
+			AND A.CALL_ID = (SELECT TOP 1 LAST_CALL_ID FROM CM_CONTRACT WHERE CONTRACT_NO = #{CONTRACT_NO})
+		ORDER BY A.SEQ_NUM, A.INFO_SEQ
+	</select>
+
+	<!--<select id="getUserInfoList" parameterType="map"	resultType="map">-->
+		<!--SELECT /*getUserInfoList - 고객 정보 조회*/-->
+		       <!--A.CUST_ID-->
+		     <!--, A.CUST_NM-->
+		     <!--, A.JUMIN_NO-->
+		     <!--, A.CUST_TEL_NO-->
+		     <!--, A.CUST_COMPANY_NO-->
+		     <!--, A.CUST_HOME_NO-->
+		     <!--, A.CUST_ETC_NO-->
+		     <!--, A.CUST_TEL_COMP-->
+		     <!--, A.TEL_COMP_SAVE_YN-->
+		     <!--, A.CERTIFI_NO-->
+		     <!--, CONVERT(VARCHAR(10), A.CREATE_DT,120) AS CREATE_DT-->
+		     <!--, CONVERT(VARCHAR(10), A.MODIFY_DT,120) AS MODIFY_DT-->
+		     <!--, A.CUST_ADDRESS-->
+		     <!--, A.CUST_DETAIL_ADDRESS-->
+		     <!--, A.CONSULT_CHAT_ID-->
+		     <!--, A.CUST_TYPE-->
+		     <!--, A.CUST_STATE-->
+		     <!--, IIF(A.CUST_STATE =0,'활성상태', IIF(A.CUST_STATE =1,'해지상태', IIF(A.CUST_STATE =2,'휴먼상태',NULL))) AS CUST_STATE_NM-->
+		     <!--, A.CUST_SUBSC_PLAN-->
+		     <!--, A.CUST_API_ID-->
+		     <!--, A.CUST_API_KEY-->
+		     <!--, CONVERT(VARCHAR(10), A.CUST_REG_DATE,120) AS CUST_REG_DATE-->
+		     <!--, CONVERT(VARCHAR(10), A.CUST_TERM_DATE,120) AS CUST_TERM_DATE-->
+		     <!--, A.CUST_REG_PATH-->
+		     <!--, A.CUST_ADDRESS2-->
+		     <!--, A.CUST_DETAIL_ADDRESS2-->
+		     <!--, A.CUST_EMAIL-->
+		<!--FROM   CUST_BASE_INFO A-->
+		<!--WHERE  1=1-->
+		<!--<if test="CUST_ID != null and CUST_ID != '' ">-->
+		  <!--AND A.CUST_ID = #{CUST_ID}-->
+		<!--</if>-->
+		<!--<if test="TEL_NO != null and TEL_NO != '' ">-->
+			<!--&lt;!&ndash; 고객연락처 &ndash;&gt;-->
+			<!--AND A.CUST_TEL_NO = #{TEL_NO}-->
+		<!--</if>-->
+		<!--<if test="CUST_TEL_NO != null and CUST_TEL_NO != '' ">-->
+			<!--&lt;!&ndash; 고객연락처 &ndash;&gt;-->
+			<!--AND A.CUST_TEL_NO = #{CUST_TEL_NO}-->
+		<!--</if>-->
+	<!--</select>-->
+
+	<select id="getUserInfoList" parameterType="map"	resultType="map">
+		SELECT A.CUST_ID, A.CAMPAIGN_ID, A.CUST_NM, A.CUST_TEL_NO
+		FROM CUST_INFO A, CM_CONTRACT B
+		WHERE 1=1 AND A.CUST_ID = B.CUST_ID
+		<if test="CONTRACT_NO != null and CONTRACT_NO != '' ">
+			AND B.CONTRACT_NO = #{CONTRACT_NO}
+		</if>
+	</select>
+
+	<select id="getUserPaymentList" parameterType="map"	resultType="map">
+		SELECT 
+				/*getUserPaymentList - 고객 결재정보 조회*/
+				TOP 1
+		         A.PAY_ID
+		       , A.CUST_ID
+		       , IIF(A.CARD_INFO IS NOT NULL AND A.CARD_INFO!='',CONCAT(LEFT(A.CARD_INFO,LEN(A.CARD_INFO)-4),'****'),'') AS CARD_INFO
+		        , CONVERT(VARCHAR(10), A.RECENT_PAYMENT_DATE,120) AS RECENT_PAYMENT_DATE
+		     	, CONVERT(VARCHAR(10), A.NEXT_PAYMENT_DATE,120) AS NEXT_PAYMENT_DATE
+		       , A.PAY_AMOUNT
+		       , A.CUST_SUBSC_PLAN
+		       , A.EXPECTED_PAY_AMOUNT
+		       , A.CREATOR_ID
+		       , A.UPDATER_ID
+		       , CONVERT(VARCHAR(10), A.CREATED_DTM,120) AS CREATED_DTM
+		     	, CONVERT(VARCHAR(10), A.UPDATED_DTM,120) AS UPDATED_DTM
+		FROM     CUST_PAYMENT_INFO A
+		WHERE    A.CUST_ID = #{CUST_ID}
+		ORDER BY PAY_ID DESC
+	</select>
+
+	<select id="getCsHisList" parameterType="map" resultType="map">
+		SELECT
+		         /*getUserPaymentList - 고객 상담이력정보 정보(사이드 리스트 )*/
+		         TOP 100
+		         ISNULL(B.CONTRACT_NO,'-')                           AS CONTRACT_NO
+		       , ISNULL(CONVERT(VARCHAR, DATEADD(second,B.DURATION,0),108),'-')      AS DURATION
+			   , CONVERT(VARCHAR(24),B.START_TIME,102)+' '+CONVERT(VARCHAR(5),B.START_TIME,108)     AS START_TIME
+		       , ISNULL(B.CALL_TYPE_CODE,'-')                        AS CALL_TYPE_CODE
+		       , ISNULL(IIF(B.CALL_TYPE_CODE='CT0001','I/B','O/B'),'-') AS CALL_TYPE_NM
+		       , ISNULL(B.CONSULT_TYPE1_DEPTH1,'-')                  AS CONSULT_TYPE1_DEPTH1
+		       , ISNULL(B.CONSULT_TYPE1_DEPTH2,'-')                  AS CONSULT_TYPE1_DEPTH2
+		       , ISNULL(B.CONSULT_TYPE1_DEPTH3,'-')                  AS CONSULT_TYPE1_DEPTH3
+		       , ISNULL(B.CONSULT_TYPE2_DEPTH1,'-')                  AS CONSULT_TYPE2_DEPTH1
+		       , ISNULL(B.CONSULT_TYPE2_DEPTH2,'-')                  AS CONSULT_TYPE2_DEPTH2
+		       , ISNULL(B.CONSULT_TYPE2_DEPTH3,'-')                  AS CONSULT_TYPE2_DEPTH3
+		       , ISNULL(B.CONSULT_TYPE3_DEPTH1,'-')                  AS CONSULT_TYPE3_DEPTH1
+		       , ISNULL(B.CONSULT_TYPE3_DEPTH2,'-')                  AS CONSULT_TYPE3_DEPTH2
+		       , ISNULL(B.CONSULT_TYPE3_DEPTH3,'-')                  AS CONSULT_TYPE3_DEPTH3
+			   , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE1_DEPTH1 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')			 	  	  AS CONSULT_TYPE1_DEPTH1_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE1_DEPTH2 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE1_DEPTH2_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE1_DEPTH3 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE1_DEPTH3_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE2_DEPTH1 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE2_DEPTH1_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE2_DEPTH2 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE2_DEPTH2_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE2_DEPTH3 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE2_DEPTH3_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE3_DEPTH1 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE3_DEPTH1_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE3_DEPTH2 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE3_DEPTH2_NM
+		       , ISNULL((SELECT CODE_NM  FROM CUST_CATEGORY_CD AA  WHERE AA.CODE = B.CONSULT_TYPE3_DEPTH3 AND AA.CAMPAIGN_ID = A.CAMPAIGN_ID),'-')                  AS CONSULT_TYPE3_DEPTH3_NM
+		       , ISNULL(B.CUST_OP_ID,'-')                            AS CUST_OP_ID
+		       , ISNULL(B.CALL_MEMO,'-')                             AS CALL_MEMO
+		       , ISNULL(B.MONITOR_CONT,'-')                          AS MONITOR_CONT
+		       , ISNULL(C.CD_DESC,'-')                          AS CD_DESC
+		       , ISNULL(C.CD_DESC_ENG,'-')                          AS CD_DESC_ENG
+		       , ISNULL(B.SIP_USER,'-')                          AS SIP_USER
+		       , B.CALL_ID
+		       <if test='inboundYn == "N"'>
+		       , ISNULL(D.CD_DESC,'-')                  AS MNT_STATUS_NAME
+		       , ISNULL(D.CD_DESC_ENG,'-')                  AS MNT_STATUS_NAME_ENG
+		       </if>
+		FROM   CM_CONTRACT A
+      		LEFT OUTER JOIN CALL_HISTORY B
+      			ON A.CONTRACT_NO =B.CONTRACT_NO
+      		<choose>
+      			<when test='inboundYn == "N"'>
+      			LEFT OUTER JOIN CM_COMMON_CD C
+      				ON B.DIAL_RESULT = C.CODE
+ 						AND C.FIRST_CD = '23'
+ 				LEFT OUTER JOIN CM_COMMON_CD D
+      				ON B.MNT_STATUS = D.CODE
+      					AND D.FIRST_CD = '24'
+      			</when>
+      			<otherwise>
+   				LEFT OUTER JOIN CM_COMMON_CD C
+   					ON B.CALL_STATUS = C.CODE
+						AND C.FIRST_CD = '02'
+      			</otherwise>
+      		</choose>
+		WHERE   1=1
+		AND A.TEL_NO = #{TEL_NO}
+		AND B.CUST_OP_ID IN (SELECT USER_ID FROM TN_USER WHERE COMPANY_ID IN(SELECT COMPANY_ID FROM TN_USER WHERE USER_ID = #{userId}))
+		<choose>
+			<when test='inboundYn == "Y"'>
+				<!-- AND B.CONSULT_TYPE1_DEPTH1 IS NOT NULL
+				AND B.CONSULT_TYPE1_DEPTH1 != '999' -->
+				AND B.CALL_TYPE_CODE = 'CT0001'
+				ORDER BY A.CONTRACT_NO DESC
+			</when>
+			<otherwise>
+				AND B.CALL_TYPE_CODE = 'CT0002'
+				ORDER BY START_TIME DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="getCsContList" parameterType="map" resultType="map">
+		SELECT /*getCsContList - 고객 채팅(탐지정보)*/
+		A.STT_RESULT_DETAIL_ID
+		, A.STT_RESULT_ID
+		, A.CALL_ID
+		, A.SPEAKER_CODE
+		, A.SENTENCE_ID
+		, A.SENTENCE
+		, A.START_TIME
+		, A.END_TIME
+		, A.IGNORED
+		, A.CREATED_DTM
+		FROM
+		CM_STT_RSLT_DETAIL A
+		, CM_CONTRACT B
+		WHERE A.CALL_ID = B.LAST_CALL_ID
+		AND B.CONTRACT_NO = #{CONTRACT_NO}
+		ORDER BY
+		A.STT_RESULT_DETAIL_ID,A.SENTENCE_ID
+	</select>
+	<select id="getUserCsDtlList" parameterType="map" 	resultType="map">
+		SELECT /*getUserCsDtlList - 고객 상담내용 정보*/
+		TOP 1
+		B.CALL_ID
+		, B.CONTRACT_NO
+		, B.CONSULT_TYPE1_DEPTH1
+		, B.CONSULT_TYPE1_DEPTH2
+		, B.CONSULT_TYPE1_DEPTH3
+		, B.CONSULT_TYPE2_DEPTH1
+		, B.CONSULT_TYPE2_DEPTH2
+		, B.CONSULT_TYPE2_DEPTH3
+		, B.CONSULT_TYPE3_DEPTH1
+		, B.CONSULT_TYPE3_DEPTH2
+		, B.CONSULT_TYPE3_DEPTH3
+		, B.CALL_MEMO
+		, B.MONITOR_CONT
+		, C.RECALL_TEL_NO
+		, CONVERT(VARCHAR(10), C.RECALL_DATE,102)+' '+CONVERT(VARCHAR(5), C.RECALL_DATE,108) AS RECALL_DATE
+		, D.NEW_CUST_OP_ID
+		, D.IMPORTANCE_LEVEL
+		, D.NEW_CUST_OP_EMAIL
+		, A.CAMPAIGN_ID
+		FROM CM_CONTRACT A 
+			INNER JOIN CALL_HISTORY B
+				ON A.CONTRACT_NO =B.CONTRACT_NO
+			LEFT OUTER JOIN RECALL_HISTORY C
+				ON A.CONTRACT_NO =C.CONTRACT_NO
+			LEFT OUTER JOIN CALL_TRANSFER_HISTORY D
+				ON A.CONTRACT_NO =D.CONTRACT_NO
+		WHERE 1=1
+			AND A.TEL_NO = #{TEL_NO}
+			AND A.CAMPAIGN_ID = #{CAMPAIGN_ID}
+		ORDER BY B.CALL_ID DESC
+	</select>
+	
+	<select id="getCallbackList" parameterType="map" resultType="map">
+		SELECT /*getCallbackList - 콜백 사이드 리스트*/
+			A.CALL_ID 
+			,CONVERT(VARCHAR(24), A.CALL_DATE,102)+' '+CONVERT(VARCHAR(5), A.CALL_DATE,108) AS CALL_DATE
+		    ,A.CONTRACT_NO
+		    ,CONVERT(VARCHAR(24), A.CALLBACK_DT,102)+' '+CONVERT(VARCHAR(5), A.CALLBACK_DT,108) AS CALLBACK_DT
+		    ,B.TEL_NO
+		    ,ISNULL(C.CUST_NM,'-') AS CUST_NM                  
+		    ,ISNULL(
+		    (
+		    	SELECT TOP 1 CONVERT(VARCHAR(24), A.CALL_DATE,102)+' '+CONVERT(VARCHAR(5), A.CALL_DATE,108)
+				FROM CALL_HISTORY AA
+					LEFT OUTER JOIN CM_CONTRACT BB
+						ON AA.CONTRACT_NO = BB.CONTRACT_NO
+				WHERE AA.CUST_OP_ID = #{sessId}  
+					AND BB.IS_INBOUND = #{inboundYn} 
+		        ORDER BY BB.CONTRACT_NO DESC
+			), '-') AS RECENT_CALL
+			,B.	CAMPAIGN_ID
+		FROM CALL_HISTORY A
+			LEFT OUTER JOIN CM_CONTRACT B
+				ON A.CONTRACT_NO = B.CONTRACT_NO
+			LEFT OUTER JOIN CUST_BASE_INFO C
+				ON B.CUST_ID = C.CUST_ID
+		WHERE A.CALLBACK_STATUS = 'CB0002'
+		AND B.IS_INBOUND = #{inboundYn}
+		AND A.CUST_OP_ID = #{sessId}  
+	</select>
+	
+	<select id="getRecallList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="map">
+		SELECT /*getRecallList - 리콜 사이드 리스트*/
+			A.CALL_ID
+			,A.CONTRACT_NO
+			,A.RECALL_TEL_NO
+			,CONVERT(VARCHAR(24), A.RECALL_DATE,102)+' '+CONVERT(VARCHAR(5), A.RECALL_DATE,108) AS RECALL_DATE
+			,ISNULL(CONVERT(VARCHAR(24), D.START_TIME,102)+' '+CONVERT(VARCHAR(5), D.START_TIME,108),'-') AS CREATED_DTM
+			,A.CREATOR_ID
+			,ISNULL(C.CUST_NM,'-') AS CUST_NM      
+			,B.CUST_ID
+			,B.	CAMPAIGN_ID
+			,ISNULL(( 
+				SELECT TOP 1 CONVERT(VARCHAR(24), AA.CALL_DATE,102)+' '+CONVERT(VARCHAR(5), AA.CALL_DATE,108)
+				FROM CALL_HISTORY AA 
+					LEFT OUTER JOIN CM_CONTRACT BB
+						ON AA.CONTRACT_NO = BB.CONTRACT_NO
+				WHERE AA.CUST_OP_ID = #{sessId} 
+					AND BB.IS_INBOUND = #{inboundYn} 
+				          AND BB.CUST_ID = B.CUST_ID
+				ORDER BY AA.CALL_DATE DESC
+			),'-') AS RECENT_CALL
+		FROM RECALL_HISTORY A
+			LEFT OUTER JOIN CM_CONTRACT B 
+				ON A.CONTRACT_NO = B.CONTRACT_NO 
+			LEFT OUTER JOIN CUST_BASE_INFO C
+				ON B.CUST_ID = C.CUST_ID
+			LEFT OUTER JOIN CALL_HISTORY D
+  	 			ON A.CALL_ID = D.CALL_ID
+		WHERE A.CREATOR_ID = #{sessId}
+			AND A.RECALL_TEL_NO IS NOT NULL
+			AND A.RECALL_TEL_NO != '' 
+			AND B.IS_INBOUND = #{inboundYn}
+		ORDER BY A.CREATED_DTM DESC
+	</select>
+	
+	<select id="getCheckCustTelNo" parameterType="String" resultType="map">
+		SELECT COUNT(*) as CHECK_CNT
+			 , CUST_ID
+		  FROM CUST_BASE_INFO
+		 WHERE CUST_TEL_NO = #{value}
+	</select>
+
+	<select id="getChatbotInfos" parameterType="String" resultType="map">
+		SELECT *
+		FROM Account
+		WHERE No in (
+			SELECT DISTINCT botId
+			FROM BotMapping
+			WHERE companyId = (
+				SELECT COMPANY_ID
+				FROM TN_USER
+				WHERE USER_ID = #{userId}
+			)
+		)
+	</select>
+	
+	<update id="updateCallHistory" parameterType="map">
+	<selectKey keyProperty="CALL_ID_FORSV" resultType="integer" order="BEFORE">
+    	SELECT LAST_CALL_ID AS CALL_ID_FORSV FROM CM_CONTRACT WHERE CONTRACT_NO = #{CONTRACT_NO}
+  	</selectKey>
+	 UPDATE CALL_HISTORY  /*updateCallHistory -  상담내용 update */
+	 SET  
+	  CALL_MEMO =#{CALL_MEMO}
+	  <!-- , UPDATER_ID =#{CUST_OP_ID} -->
+	  <choose>
+	  	<when test='inboundYn == "N"'>
+	  		,DIAL_RESULT = #{DIAL_RESULT}
+	  		,MNT_STATUS = #{MNT_STATUS}
+	  	</when>
+	  	<otherwise>
+	 		, MONITOR_CONT =#{MONITOR_CONT}
+			, CONSULT_TYPE1_DEPTH1 =#{CONSULT_TYPE1_DEPTH1}
+			, CONSULT_TYPE1_DEPTH2 =#{CONSULT_TYPE1_DEPTH2}
+			, CONSULT_TYPE1_DEPTH3 =#{CONSULT_TYPE1_DEPTH3}
+			, CONSULT_TYPE2_DEPTH1 =#{CONSULT_TYPE2_DEPTH1}
+			, CONSULT_TYPE2_DEPTH2 =#{CONSULT_TYPE2_DEPTH2}
+			, CONSULT_TYPE2_DEPTH3 =#{CONSULT_TYPE2_DEPTH3}
+			, CONSULT_TYPE3_DEPTH1 =#{CONSULT_TYPE3_DEPTH1}
+			, CONSULT_TYPE3_DEPTH2 =#{CONSULT_TYPE3_DEPTH2}
+			, CONSULT_TYPE3_DEPTH3 =#{CONSULT_TYPE3_DEPTH3} 	
+	  	</otherwise>
+	  </choose>
+	 WHERE CALL_ID = #{CALL_ID_FORSV}
+	      AND CONTRACT_NO = #{CONTRACT_NO}
+	</update>
+	
+	<update id="mergeRecallHistory" parameterType="map">
+		<selectKey keyProperty="CALL_ID" resultType="integer" order="BEFORE">
+	    	SELECT LAST_CALL_ID AS CALL_ID FROM CM_CONTRACT WHERE CONTRACT_NO = #{CONTRACT_NO}
+	  	</selectKey>
+	  	
+		/*mergeRecallHistory -  재통화 merge*/
+		MERGE INTO RECALL_HISTORY
+		USING (SELECT #{CALL_ID} AS DUMM) X 
+		ON (CALL_ID= #{CALL_ID})
+		WHEN MATCHED THEN
+      	UPDATE SET
+	     	UPDATER_ID =#{CUST_OP_ID}
+			,RECALL_TEL_NO = #{RECALL_TEL_NO}
+			,RECALL_DATE =CAST(#{RECALL_DATE} AS DATETIME)
+			WHEN NOT MATCHED THEN
+		      INSERT(
+				CONTRACT_NO
+				,RECALL_TEL_NO
+				,CREATOR_ID
+				,UPDATER_ID
+				,RECALL_DATE
+				,CREATED_DTM
+				,CALL_ID
+				)
+				VALUES (
+				#{CONTRACT_NO}
+				,#{RECALL_TEL_NO}
+				,#{CUST_OP_ID}
+				,#{CUST_OP_ID}
+				,CAST(#{RECALL_DATE} AS DATETIME)
+				,GETDATE()
+				,#{CALL_ID}
+				);
+	</update>
+
+	<update id="mergeCallTranSferHistory" parameterType="map">
+	<selectKey keyProperty="CALL_TRANSFER_ID" resultType="integer" order="BEFORE">
+    	SELECT MAX(CALL_TRANSFER_ID) FROM CALL_TRANSFER_HISTORY WHERE CONTRACT_NO = #{CONTRACT_NO}
+  	</selectKey>
+		INSERT INTO /*mergeCallTranSferHistory - 이관merge*/
+		CALL_TRANSFER_HISTORY (
+		CONTRACT_NO
+		, PREV_CUST_OP_ID
+		, NEW_CUST_OP_ID
+		, NEW_CUST_OP_EMAIL
+		, IMPORTANCE_LEVEL
+		, CREATOR_ID
+		, UPDATER_ID
+		<if test="CALL_TRANSFER_ID  lte 0">
+		,CALL_TRANSFER_ID
+		</if>
+		)
+		VALUES (
+		  #{CONTRACT_NO}
+		, #{CUST_OP_ID}
+		, #{NEW_CUST_OP_ID}
+		, #{NEW_CUST_OP_EMAIL}
+		, #{IMPORTANCE_LEVEL}
+		, #{CUST_OP_ID}
+		, #{CUST_OP_ID}
+		<if test="CALL_TRANSFER_ID lte 0">
+		,#{CALL_TRANSFER_ID}
+		</if>
+		)
+		ON DUPLICATE KEY
+		UPDATE 
+		UPDATER_ID =#{CUST_OP_ID}
+		, NEW_CUST_OP_ID = #{NEW_CUST_OP_ID}
+		, NEW_CUST_OP_EMAIL = #{NEW_CUST_OP_EMAIL}
+		, IMPORTANCE_LEVEL = #{IMPORTANCE_LEVEL}
+	</update>
+
+
+	<update id="updateCmOpInfo" parameterType="map">
+	 UPDATE TN_USER  /*updateCmOpInfo -  상담사 상태 업데이트 */
+	 SET  
+	  CUST_OP_STATUS =#{CUST_OP_STATUS}
+	   <!-- , UPDATER_ID =#{CUST_OP_ID} -->
+	 WHERE  USER_ID = #{CUST_OP_ID}
+	</update>
+	
+	<update id="updateCmOpChatInfo" parameterType="map">
+	 UPDATE TN_USER  /*updateCmOpChatInfo -  상담사 상태 업데이트 */
+	 SET  
+	  CHAT_CONSULT_STATUS =#{CHAT_CONSULT_STATUS}
+	   <!-- , UPDATER_ID =#{CUST_OP_ID} -->
+	 WHERE  USER_ID = #{CUST_OP_ID}
+	</update>
+	
+	<update id="updateChatMemo" parameterType="map">
+	 UPDATE CHAT_SESSION_LOG /* updateChatMemo - 상담메모 업데이트 */
+	 SET SUPPORTER_COMMENT = #{supporterComment} 
+	 WHERE HOST = #{host} 
+	 AND ROOM_ID = #{roomId}
+	</update>
+	
+	<insert id="insertCustBaseInfo" parameterType="map">
+		/*insertCustBaseInfo -  고객 정보 신규등록 */
+		INSERT INTO CUST_BASE_INFO ( 
+			 CUST_NM
+			, CREATE_DT
+			, CUST_TEL_NO
+			<if test="CUST_COMPANY_NO != null and CUST_COMPANY_NO != '' ">
+			, CUST_COMPANY_NO
+			</if>
+			<if test="CUST_HOME_NO != null and CUST_HOME_NO != '' ">
+			, CUST_HOME_NO
+			</if>
+			<if test="CUST_ADDRESS != null and CUST_ADDRESS != '' ">
+			, CUST_ADDRESS
+			</if>
+			<if test="CUST_DETAIL_ADDRESS != null and CUST_DETAIL_ADDRESS != '' ">
+			, CUST_DETAIL_ADDRESS
+			</if>
+			<if test="CONSULT_CHAT_ID != null and CONSULT_CHAT_ID != '' ">
+			, CONSULT_CHAT_ID
+			</if>
+			<if test="CUST_TYPE != null and CUST_TYPE != '' ">
+			, CUST_TYPE
+			</if>
+			<if test="CUST_SUBSC_PLAN != null and CUST_SUBSC_PLAN != '' ">
+			, CUST_SUBSC_PLAN
+			</if>
+			<if test="CUST_API_ID != null and CUST_API_ID != '' ">
+			, CUST_API_ID
+			</if>
+			<if test="CUST_API_KEY != null and CUST_API_KEY != '' ">
+			, CUST_API_KEY
+			</if>
+			<if test="CUST_REG_DATE != null and CUST_REG_DATE != '' ">
+			, CUST_REG_DATE
+			</if>
+			<if test="CUST_REG_PATH != null and CUST_REG_PATH != '' ">
+			, CUST_REG_PATH
+			</if>
+			<if test="CUST_TERM_DATE != null and CUST_TERM_DATE != '' ">
+			, CUST_TERM_DATE
+			</if>
+			<if test="CUST_ADDRESS2 != null and CUST_ADDRESS2 != '' ">
+			, CUST_ADDRESS2
+			</if>
+			<if test="CUST_DETAIL_ADDRESS2 != null and CUST_DETAIL_ADDRESS2 != '' ">
+			, CUST_DETAIL_ADDRESS2
+			</if>
+			<if test="CUST_EMAIL != null and CUST_EMAIL != '' ">
+			, CUST_EMAIL
+			</if>
+		)VALUES (
+			 #{CUST_NM}
+			, GETDATE()
+			, #{CUST_TEL_NO}
+			<if test="CUST_COMPANY_NO != null and CUST_COMPANY_NO != '' ">
+			, #{CUST_COMPANY_NO}
+			</if>
+			<if test="CUST_HOME_NO != null and CUST_HOME_NO != '' ">
+			, #{CUST_HOME_NO}
+			</if>
+			<if test="CUST_ADDRESS != null and CUST_ADDRESS != '' ">
+			, #{CUST_ADDRESS}
+			</if>
+			<if test="CUST_DETAIL_ADDRESS != null and CUST_DETAIL_ADDRESS != '' ">
+			, #{CUST_DETAIL_ADDRESS}
+			</if>
+			<if test="CONSULT_CHAT_ID != null and CONSULT_CHAT_ID != '' ">
+			, #{CONSULT_CHAT_ID}
+			</if>
+			<if test="CUST_TYPE != null and CUST_TYPE != '' ">
+			, #{CUST_TYPE}
+			</if>
+			<if test="CUST_SUBSC_PLAN != null and CUST_SUBSC_PLAN != '' ">
+			, #{CUST_SUBSC_PLAN}
+			</if>
+			<if test="CUST_API_ID != null and CUST_API_ID != '' ">
+			, #{CUST_API_ID}
+			</if>
+			<if test="CUST_API_KEY != null and CUST_API_KEY != '' ">
+			, #{CUST_API_KEY}
+			</if>
+			<if test="CUST_REG_DATE != null and CUST_REG_DATE != '' ">
+			, #{CUST_REG_DATE}
+			</if>
+			<if test="CUST_REG_PATH != null and CUST_REG_PATH != '' ">
+			, #{CUST_REG_PATH}
+			</if>
+			<if test="CUST_TERM_DATE != null and CUST_TERM_DATE != '' ">
+			, #{CUST_TERM_DATE}
+			</if>
+			<if test="CUST_ADDRESS2 != null and CUST_ADDRESS2 != '' ">
+			, #{CUST_ADDRESS2}
+			</if>
+			<if test="CUST_DETAIL_ADDRESS2 != null and CUST_DETAIL_ADDRESS2 != '' ">
+			, #{CUST_DETAIL_ADDRESS2}
+			</if>
+			<if test="CUST_EMAIL != null and CUST_EMAIL != '' ">
+			, #{CUST_EMAIL}
+			</if>
+		)	
+	</insert>
+	
+	<insert id="insertCustPaymentInfo" parameterType="map">
+		<selectKey keyProperty="CUST_ID" resultType="integer" order="BEFORE">
+    		SELECT MAX(CUST_ID) FROM CUST_BASE_INFO
+  		</selectKey>
+		/*insertCustPaymentInfo -  고객 결제정보 신규등록 */
+		INSERT INTO CUST_PAYMENT_INFO (
+			  CUST_ID
+			, CREATED_DTM
+			<if test="CARD_INFO != null and CARD_INFO != '' ">
+			, CARD_INFO
+			</if>
+			<if test="CUST_SUBSC_PLAN != null and CUST_SUBSC_PLAN != '' ">
+			, CUST_SUBSC_PLAN
+			</if>
+			<if test="RECENT_PAYMENT_DATE != null and RECENT_PAYMENT_DATE != '' ">
+			, RECENT_PAYMENT_DATE
+			</if>
+			<if test="NEXT_PAYMENT_DATE != null and NEXT_PAYMENT_DATE != '' ">
+			, NEXT_PAYMENT_DATE
+			</if>
+			<if test="PAY_AMOUNT != null and PAY_AMOUNT != '' ">
+			, PAY_AMOUNT
+			</if>
+			<if test="EXPECTED_PAY_AMOUNT != null and EXPECTED_PAY_AMOUNT != '' ">
+			, EXPECTED_PAY_AMOUNT
+			</if>
+		)VALUES (
+			  #{CUST_ID}
+			, GETDATE()
+			<if test="CARD_INFO != null and CARD_INFO != '' ">
+			, #{CARD_INFO}
+			</if>
+			<if test="CUST_SUBSC_PLAN != null and CUST_SUBSC_PLAN != '' ">
+			, #{CUST_SUBSC_PLAN}
+			</if>
+			<if test="RECENT_PAYMENT_DATE != null and RECENT_PAYMENT_DATE != '' ">
+			, #{RECENT_PAYMENT_DATE}
+			</if>
+			<if test="NEXT_PAYMENT_DATE != null and NEXT_PAYMENT_DATE != '' ">
+			, #{NEXT_PAYMENT_DATE}
+			</if>
+			<if test="PAY_AMOUNT != null and PAY_AMOUNT != '' ">
+			, #{PAY_AMOUNT}
+			</if>
+			<if test="EXPECTED_PAY_AMOUNT != null and EXPECTED_PAY_AMOUNT != '' ">
+			, #{EXPECTED_PAY_AMOUNT}
+			</if>
+		)
+	</insert>
+	
+		<update id="updateCustBaseInfo" parameterType="map">
+	 UPDATE CUST_BASE_INFO  /*updateCustBaseInfo -  고객 정보 업데이트 */
+	 SET 
+	 	MODIFY_DT = GETDATE()
+	 	
+	    ,  CUST_TEL_NO =#{CUST_TEL_NO}
+	  	,  CUST_COMPANY_NO =#{CUST_COMPANY_NO}
+	  	,  CUST_HOME_NO =#{CUST_HOME_NO}
+	  	,  CUST_ADDRESS =#{CUST_ADDRESS}
+	  	,  CUST_DETAIL_ADDRESS =#{CUST_DETAIL_ADDRESS}
+	  	,  CONSULT_CHAT_ID =#{CONSULT_CHAT_ID}
+	  	,  CUST_SUBSC_PLAN =#{CUST_SUBSC_PLAN}
+	  	,  CUST_API_ID =#{CUST_API_ID}
+	  	,  CUST_API_KEY =#{CUST_API_KEY}
+	  	<if test="CUST_REG_DATE!=null and CUST_REG_DATE!=''">,  CUST_REG_DATE =#{CUST_REG_DATE} </if>
+	  	,  CUST_REG_PATH =#{CUST_REG_PATH}
+	  	<if test="CUST_TERM_DATE!=null and CUST_TERM_DATE!=''">,  CUST_TERM_DATE =#{CUST_TERM_DATE} </if>
+	  	,  CUST_ADDRESS2 =#{CUST_ADDRESS2}
+	  	,  CUST_DETAIL_ADDRESS2 =#{CUST_DETAIL_ADDRESS2}
+	 	,  CUST_EMAIL =#{CUST_EMAIL}
+	  	,  CUST_TYPE =#{CUST_TYPE}
+	  	,  CUST_NM =#{CUST_NM}
+	 WHERE  CUST_ID = #{CUST_ID}
+	</update>
+	
+	<update id="mergeCustPaymentInfo" parameterType="map">
+		<selectKey keyProperty="PAY_ID" resultType="integer" order="BEFORE">
+	    	SELECT ISNULL(max(PAY_ID),(SELECT max(PAY_ID) FROM CUST_PAYMENT_INFO)) FROM CUST_PAYMENT_INFO WHERE CUST_ID =#{CUST_ID} 
+	  	</selectKey>
+	  	MERGE INTO CUST_PAYMENT_INFO
+		USING (SELECT #{PAY_ID} AS DUMM) X 
+		ON (PAY_ID= #{PAY_ID})
+		WHEN MATCHED THEN
+		      UPDATE SET
+	     		 CARD_INFO = #{CARD_INFO}
+				, RECENT_PAYMENT_DATE = CAST(#{RECENT_PAYMENT_DATE} AS DATETIME2)
+				, PAY_AMOUNT = #{PAY_AMOUNT}
+				, NEXT_PAYMENT_DATE = CAST(#{NEXT_PAYMENT_DATE} AS DATETIME2)
+				, CUST_SUBSC_PLAN = #{CUST_SUBSC_PLAN}
+				, EXPECTED_PAY_AMOUNT = #{EXPECTED_PAY_AMOUNT}
+			WHEN NOT MATCHED THEN
+		      INSERT(
+				CARD_INFO
+				, CUST_ID
+				, RECENT_PAYMENT_DATE
+				, PAY_AMOUNT
+				, NEXT_PAYMENT_DATE
+				, CUST_SUBSC_PLAN
+				, EXPECTED_PAY_AMOUNT
+				, CREATOR_ID
+				, UPDATER_ID
+				, CREATED_DTM
+				, PAY_ID
+				)
+				VALUES (
+				  #{CARD_INFO}
+				, #{CUST_ID}
+				, CAST(#{RECENT_PAYMENT_DATE} AS DATETIME2)
+				, #{PAY_AMOUNT}
+				, CAST(#{NEXT_PAYMENT_DATE} AS DATETIME2)
+				, #{CUST_SUBSC_PLAN}
+				, #{EXPECTED_PAY_AMOUNT}
+				, #{CUST_OP_ID}
+				, #{CUST_OP_ID}
+				, GETDATE()
+				,#{PAY_ID}
+				);
+		 
+	</update>
+	
+	<update id="updateUserPw" parameterType="map">
+		UPDATE TN_USER  /*updateUserPw -  상담사 비밀번호 업데이트 */
+		SET  
+		USER_PW = #{CUST_OP_CH_PW},
+		ENABLED_YN = #{ENABLED_YN},
+		PASSWORD_CHANGE_DE = GETDATE()
+		WHERE 1=1
+			AND USER_ID = #{CUST_OP_ID}
+			AND USER_NO = #{CUST_OP_USER_ID}
+	</update>
+	
+	<select id="getUserObResultRecall" parameterType="String" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallHistoryVO">
+		SELECT A.CALL_ID
+		     , A.CALL_DATE
+		     , ISNULL((CASE WHEN A.CALL_TYPE_CODE='CT0001' THEN 'I/B' ELSE 'O/B' END),'-') AS CALL_TYPE_NM
+		 	 , A.CUST_OP_ID
+		 	 , A.SIP_USER
+		 	 , A.DIAL_RESULT
+		 	 , A.CALL_MEMO
+		 	 , A.MNT_STATUS
+		 	 , A.MNT_STATUS_NAME
+		 	 , B.RECALL_TEL_NO
+		 	 , B.RECALL_DATE
+		  FROM CALL_HISTORY A 
+		  LEFT OUTER JOIN RECALL_HISTORY B
+			ON A.CALL_ID = B.CALL_ID
+		 WHERE A.CALL_ID = #{callId}
+		   AND A.CALL_TYPE_CODE = 'CT0002'
+	</select>
+	
+	<update id="updateCustId" parameterType="map">
+		UPDATE CM_CONTRACT SET CUST_ID = (SELECT CUST_ID FROM CUST_BASE_INFO WHERE CUST_TEL_NO = #{custTelNo} LIMIT 1) WHERE CONTRACT_NO = #{contractNo}
+	</update>
+	
+	<update id="updateObCustId" parameterType="map">
+		UPDATE CM_CONTRACT SET CUST_ID = (SELECT CUST_ID FROM CUST_INFO WHERE CUST_TEL_NO = #{custTelNo} AND CAMPAIGN_ID= #{campaignId}) where CONTRACT_NO = #{contractNo}
+	</update>
+	
+	<select id="getPwDate" parameterType="map" resultType="map">
+		SELECT PASSWORD_CHANGE_DE, REGIST_DT
+		FROM TN_USER
+		WHERE USER_ID = #{USER_ID}
+	</select>
+</mapper>

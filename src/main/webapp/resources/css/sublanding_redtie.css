@@ -1,0 +1,62 @@
+@charset "utf-8";
+.far {font-weight:900;}
+
+#header h1 {margin:30px 0 0 0;}
+#header h1 a {width:auto; height:22px;}
+#header h1 a img {width:auto;}
+
+.gnb ul.nav li a {color:#2f0303;}
+#menu > ul {border: 1px solid #2f0303;}
+dl.sloganBox {color:#2f0303;}
+.stn .stn_cnt .fr ol.lst li {color:#2f0303;}
+form.loginForm .ipt_login .iptBox span {color:#2f0303;}
+form.loginForm .ipt_login .iptBox .ipt_txt:focus {border:1px solid #2f0303;}
+form.loginForm a.btn_line_purple:hover {color:#2f0303; border:1px solid #2f0303;}
+
+.stn .stn_cnt .fr .msg {color:#9A1F21;}
+.stn .stn_cnt .fr ol.lst li:before {background:#9A1F21;}
+form.loginForm {color:#9A1F21;}
+form.loginForm:hover {border:1px solid #9A1F21;}
+form.loginForm a.btn_bg_purple {border:1px solid #9A1F21; background:#9A1F21;}
+form.loginForm a.btn_line_purple {color:#9A1F21; border:1px solid #9A1F21;}
+.lyrBox .lyr_top{background:#9A1F21;}
+.lyrWrap .lyrBox .lyr_mid .legacy-browser a{color:#9A1F21;}
+.lyrWrap .contactBox .contact_tit h3 {color:#9A1F21;}
+.lyrWrap .contactBox .contact_cnt .contact_lst {background:#9A1F21;}
+.lyrWrap .contactBox .contact_btn .btn_inquiry {background:#9A1F21;}
+
+#menu ul.dropdown-menu li:hover a {color:#ca1019;}
+
+#footer {position: absolute; left: 0; bottom: 0; width: 100%;height:127px;background: #f5f6fa; color: #001c2e;box-sizing:border-box;font-size: 15px; border-top: solid 1px #cfd5eb;}
+#footer a {color: #001c2e; font-size: 15px;}
+#footer .btm_menu {width: 100%;}
+#footer .cont_box {position: relative; width: 1220px; height: 100%; margin: 0 auto;}
+#footer .btm_menu img {width: 100%;}
+#footer .btm_menu .menu_area {display: inline-block; width: 100%;margin: 20px 0 0; border-radius: 4px; text-align: center; clear: both;}
+#footer .btm_menu .menu_area p {display: inline-block;margin: 0 20px 0 0;font-weight: 700; letter-spacing: -0.4px;}
+#footer .btm_menu .menu_area .contact > a {display: inline-block; margin: 10px 0 10px 0;}
+#footer .btm_menu .menu_area .contact > a:nth-child(2) {margin-right: 10px;}
+#footer .btm_menu .menu_area .contact > a span {margin: 0 4px 0 0;}
+
+#footer .copyright {width: 100%; height: 36px; text-align: center;}
+#footer .copyright span {position: relative; padding: 0 2px; font-size: 13px; line-height:36px; letter-spacing: -0.4px;color: #001c2e;opacity: 0.8;}
+#footer .copyright span:nth-child(4), #footer .copyright span:nth-child(5), #footer .copyright p a{padding: 0 0 0 16px;}
+#footer .copyright span:nth-child(4):before,#footer .copyright span:nth-child(5):before, #footer .copyright p a:before {content: ''; display: block; position: absolute; top: 4px; left: 6px; width: 1px; height: 13px; background: #001c2e; opacity: 0.8;}
+#footer .copyright p {display: inline;}
+#footer .copyright p a {position:relative; font-size: 13px; line-height:36px; letter-spacing: -0.4px;color: #001c2e;opacity: 0.8;}
+
+/* Mobile Layout */
+@media screen and (max-width:900px) {
+    #footer {position: relative; left: auto; bottom: auto; background: #fff;}
+    #footer .cont_box {width:100%; padding: 0 10px;box-sizing: border-box;}
+    #footer .btm_menu {height:auto;}
+    #footer .btm_menu .cont_box > a {display: none;}
+    #footer .btm_menu .menu_area {width:100%;margin: 10px 0 0;}
+    #footer .btm_menu .menu_area > div {float:unset;}
+    #footer .btm_menu .menu_area .contact {padding:0;border-left:none;font-size:1rem;}
+    #footer .btm_menu .menu_area .contact > a {font-size:1rem;}
+    #footer .copyright {height:auto;}
+    #footer .copyright span {font-size:10px;line-height: 23px;}
+    #footer .copyright p {display: block;}
+    #footer .copyright p a{font-size:10px;}
+}

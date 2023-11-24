@@ -1,0 +1,73 @@
+/* reset */
+html,body {margin: 0; padding: 0; font-family: "Noto Sans CJK KR", sans-serif; font-size: 16px;}
+div,p,h1,h2,h3,h4,h5,h6,ul,ol,li {margin: 0; padding: 0;}
+ul,ol {list-style: none;}
+h1,h2,h3,h4,h5,h6,p,span,li,a {color: #24292E;}
+a {text-decoration:none;}
+
+/* wrap */
+#wrap {min-width: 1285px;}
+
+/* header */
+#header {overflow: auto; position: fixed; top: 0; left: 0; width: 300px; height: 100vh; padding-bottom: 20px; background: #4D628A; box-sizing: border-box; vertical-align: top; user-select: none;}
+#header .menu {display: block; color: #fff; font-size: 1rem; line-height: 1.875rem; font-weight: 500;}
+#header a.menu {font-size: 1.125rem; font-weight: 400;}
+#header a.menu span {color: #fff; opacity: 0.7;}
+#header a.menu:hover {background: #5B7EBF;}
+#header a.menu:hover span {opacity: 1;}
+#header a.menu.active {background: #5B7EBF;}
+#header a.menu.active span {opacity: 1;}
+#header .depth1 .menu {padding: 10px 0 10px 30px;}
+#header .depth1 > .menu {margin-top: 5px;}
+#header .depth2 .menu {padding: 10px 0 10px 45px;}
+#header .depth3 .menu {padding: 8px 0 8px 60px;}
+
+/* container */
+#container {display: inline-block; width: calc(100% - 310px); margin-left: 300px; padding: 40px 50px 100px; box-sizing: border-box; vertical-align: top;}
+#contents {width: 885px;}
+
+/* text */
+.text_hide {overflow: hidden; display: block; font-size: 0; line-height: 0; text-indent: -999px;}
+#contents h4, #contents h5, #contents h6 {font-weight: 500; color: #24292E;}
+#contents h4 {font-size: 1.875rem;}
+#contents h5 {margin-top: 100px; font-size: 1.5rem;}
+#contents h5:nth-of-type(1) {margin-top: 70px;}
+#contents h6 {margin-top: 100px; font-size: 1.25rem;}
+h4 + .header_desc {margin-top: 50px; font-size: 1.25rem; line-height: 2.25rem;}
+h5 + .header_desc {margin-top: 30px; font-size: 1.125rem; line-height: 2.25rem;}
+.info_small {font-size: 0.875rem;}
+.info_medium {font-size: 1rem; font-weight: 500;}
+.info_large {font-size: 1.25rem; font-weight: 500;}
+
+/* img box */
+.img_box {margin-top: 50px; text-align: center;}
+.img_box + .img_box {margin-top: 30px;}
+.img_box img {border: 1px solid #94999E; vertical-align: top; box-sizing: border-box;}
+.img_box .info_small {margin-top: 10px;}
+.img_box .full_img {width: 100%; vertical-align: top;}
+.img_box .auto_img {width: auto; max-width: 100%; vertical-align: top;}
+
+/* paragraph */
+.paragraph {margin: 80px 50px 80px 40px;}
+.paragraph p {margin-top: 40px; font-size: 1.125rem; line-height: 1.875rem; color: #24292E;}
+
+/* list */
+.list {margin: 50px 20px 0 20px;}
+.list .list {margin: 30px 0 30px 40px;}
+.list a {text-decoration: underline;}
+.list li + li {margin-top: 15px;}
+.list .title {display: inline-block; width: 150px; vertical-align: top; font-size: 1rem; line-height: 1.75rem; font-weight: 500;}
+.list .list_type {display: inline-block; margin-right: 5px; font-weight: 400;}
+.list .desc {display: inline-block; width: calc(100% - 170px); margin-left: 10px; vertical-align: top; font-size: 1rem; line-height: 1.75rem;}
+.list .img_box {margin-bottom: 30px;}
+
+/* title이 있는 list */
+.list .li_title {margin-top: 35px; font-size: 1.125rem; font-weight: 500;}
+.list .li_cont {margin-top: 20px;}
+.list .li_cont + .li_cont {margin-top: 15px;}
+
+/* list custom */
+.list.title_large > li > .title {width: 200px;}
+.list.title_large > li > .desc {width: calc(100% - 220px);}
+.list.title_xl > li > .title {width: 250px;}
+.list.title_xl > li > .desc {width: calc(100% - 270px);}

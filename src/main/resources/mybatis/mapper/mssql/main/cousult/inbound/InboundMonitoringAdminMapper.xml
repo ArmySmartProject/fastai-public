@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.inbound.mapper.InboundMonitoringAdminMapper">
+    <select id="getChart1InfoList"  parameterType="hashmap"  resultType="hashmap">
+			SELECT  /*getChart1InfoList - 모니터링 차트 1번채 */
+					A.CODE    AS CODE 
+			     , A.cd_desc AS CODE_NM
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 6 DAY))
+			       )
+			       AS NOW6
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 5 DAY))
+			       )
+			       AS NOW5
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 4 DAY))
+			       )
+			       AS NOW4
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 3 DAY))
+			       )
+			       AS NOW3
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 2 DAY))
+			       )
+			       AS NOW2
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 1 DAY))
+			       )
+			       AS NOW1
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 0 DAY))
+			       )
+			       AS NOW0
+			FROM   CM_COMMON_CD A
+			WHERE  A.FIRST_CD ='02'
+			AND A.code IN(
+			<foreach item="item" collection="arr" index="index" separator="," >
+	       	 #{item}
+	    	</foreach>
+			)
+    </select>
+    
+     <select id="getChart2InfoList"  parameterType="hashmap"  resultType="hashmap">
+			SELECT  /*getChart2InfoList - 모니터링 차트 2번채 */
+					A.CODE    AS CODE 
+			     , A.cd_desc AS CODE_NM
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 6 DAY))
+			       )
+			       AS NOW6
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 5 DAY))
+			       )
+			       AS NOW5
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 4 DAY))
+			       )
+			       AS NOW4
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 3 DAY))
+			       )
+			       AS NOW3
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 2 DAY))
+			       )
+			       AS NOW2
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 1 DAY))
+			       )
+			       AS NOW1
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 0 DAY))
+			       )
+			       AS NOW0
+			FROM   CM_COMMON_CD A
+			WHERE  A.FIRST_CD ='02'
+			AND A.code IN(
+			<foreach item="item" collection="arr" index="index" separator="," >
+	       	 #{item}
+	    	</foreach>
+			)
+    </select>
+    
+     <select id="getChart3InfoList"  parameterType="hashmap"  resultType="hashmap">
+			SELECT  /*getChart3InfoList - 모니터링 차트 3번채 */
+					A.CODE    AS CODE 
+			     , A.cd_desc AS CODE_NM
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 6 DAY))
+			       )
+			       AS NOW6
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 5 DAY))
+			       )
+			       AS NOW5
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 4 DAY))
+			       )
+			       AS NOW4
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 3 DAY))
+			       )
+			       AS NOW3
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 2 DAY))
+			       )
+			       AS NOW2
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 1 DAY))
+			       )
+			       AS NOW1
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 0 DAY))
+			       )
+			       AS NOW0
+			FROM   CM_COMMON_CD A
+			WHERE  A.FIRST_CD ='02'
+			AND A.code IN(
+			<foreach item="item" collection="arr" index="index" separator="," >
+	       	 #{item}
+	    	</foreach>
+			)
+    </select>
+    
+     <select id="getChart4InfoList"  parameterType="hashmap"  resultType="hashmap">
+			SELECT  /*getChart4InfoList - 모니터링 차트 4번채 키워드 추이현황*/
+					A.CODE    AS CODE 
+			     , A.cd_desc AS CODE_NM
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 6 DAY))
+			       )
+			       AS NOW6
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 5 DAY))
+			       )
+			       AS NOW5
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 4 DAY))
+			       )
+			       AS NOW4
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 3 DAY))
+			       )
+			       AS NOW3
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 2 DAY))
+			       )
+			       AS NOW2
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 1 DAY))
+			       )
+			       AS NOW1
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 0 DAY))
+			       )
+			       AS NOW0
+			FROM   CM_COMMON_CD A
+			WHERE  A.FIRST_CD ='02'
+			AND A.code IN(
+			<foreach item="item" collection="arr" index="index" separator="," >
+	       	 #{item}
+	    	</foreach>
+			)
+    </select>
+    
+     <select id="getCallStateList"  parameterType="hashmap"  resultType="hashmap">
+			SELECT  /*getCallStateList - 모니터링 하단 콜현황*/
+					A.CODE    AS CODE 
+			     , A.cd_desc AS CODE_NM
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 6 DAY))
+			       )
+			       AS NOW6
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 5 DAY))
+			       )
+			       AS NOW5
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 4 DAY))
+			       )
+			       AS NOW4
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 3 DAY))
+			       )
+			       AS NOW3
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 2 DAY))
+			       )
+			       AS NOW2
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 1 DAY))
+			       )
+			       AS NOW1
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 0 DAY))
+			       )
+			       AS NOW0
+			FROM   CM_COMMON_CD A
+			WHERE  A.FIRST_CD ='02'
+			AND A.code IN(
+			<foreach item="item" collection="arr" index="index" separator="," >
+	       	 #{item}
+	    	</foreach>
+			)
+    </select>
+</mapper>

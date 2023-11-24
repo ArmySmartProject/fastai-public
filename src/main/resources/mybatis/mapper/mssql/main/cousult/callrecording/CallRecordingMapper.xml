@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.callrecording.mapper.CallRecordingMapper">
+    <select id="getCallRecordSearch" resultType="ai.maum.biz.fastaicc.main.cousult.callrecording.domain.CallRecordVO" parameterType="ai.maum.biz.fastaicc.main.cousult.callrecording.domain.CallRecordVO">
+        SELECT
+        tb2.CALL_ID CALL_ID,
+        IF(tb2.CALL_TYPE_CODE = 'CT0001','I/B','O/B') CALL_TYPE_CODE,
+        tb2.START_TIME START_TIME,
+        tb2.END_TIME END_TIME,
+        tb2.DURATION DURATION,
+        tb2.SIP_USER SIP_USER,
+        tb3.CAMPAIGN_NM CAMPAIGN_NAME,
+        tb5.COMPANY_NAME COMPANY_NAME
+        FROM
+        CM_CONTRACT tb1
+        LEFT JOIN
+        CALL_HISTORY tb2 ON tb1.contract_no = tb2.contract_no
+        LEFT JOIN
+        CM_CAMPAIGN tb3 ON tb1.CAMPAIGN_ID = tb3.CAMPAIGN_ID
+        LEFT JOIN
+        CM_COMPANY_CAMPAIGNS tb4 ON tb3.CAMPAIGN_ID = tb4.CAMPAIGN_ID
+        LEFT JOIN
+        CM_COMPANY tb5 ON tb4.COMPANY_ID = tb5.COMPANY_ID
+        WHERE
+        <![CDATA[
+            CALL_ID > 0
+        ]]>
+        <if test="company != '' and company != null">
+            AND COMPANY_NAME LIKE #{company}
+        </if>
+        <if test="sipUser != '' and sipUser != null">
+            AND SIP_USER LIKE #{sipUser}
+        </if>
+        <if test="campaignName != '' and campaignName != null">
+            AND CAMPAIGN_NM LIKE #{campaignName}
+        </if>
+        <if test="startDateTime != '' and startDateTime != null and endDateTime != '' and endDateTime != null">
+            <![CDATA[
+            AND (START_TIME >= #{startDateTime} AND END_TIME <= #{endDateTime})
+            ]]>
+        </if>
+        ORDER BY CALL_ID DESC
+        limit #{page},#{amount}
+    </select>
+
+    <select id="getCallRecordSearchCnt" resultType="int" parameterType="ai.maum.biz.fastaicc.main.cousult.callrecording.domain.CallRecordVO">
+        SELECT
+        COUNT(*)
+        FROM
+        (SELECT
+        tb2.CALL_ID CALL_ID,
+        IF(tb2.CALL_TYPE_CODE = 'CT0001', 'I/B', 'O/B') CALL_TYPE_CODE,
+        tb2.START_TIME START_TIME,
+        tb2.END_TIME END_TIME,
+        tb2.DURATION DURATION,
+        tb2.SIP_USER SIP_USER,
+        tb3.CAMPAIGN_NM CAMPAIGN_NM,
+        tb5.COMPANY_NAME COMPANY_NAME
+        FROM
+        CM_CONTRACT tb1
+        LEFT JOIN CALL_HISTORY tb2 ON tb1.contract_no = tb2.contract_no
+        LEFT JOIN CM_CAMPAIGN tb3 ON tb1.CAMPAIGN_ID = tb3.CAMPAIGN_ID
+        LEFT JOIN CM_COMPANY_CAMPAIGNS tb4 ON tb3.CAMPAIGN_ID = tb4.CAMPAIGN_ID
+        LEFT JOIN CM_COMPANY tb5 ON tb4.COMPANY_ID = tb5.COMPANY_ID
+        WHERE
+        <![CDATA[
+            CALL_ID > 0
+        ]]>
+        <if test="company != '' and company != null">
+            AND COMPANY_NAME LIKE #{company}
+        </if>
+        <if test="sipUser != '' and sipUser != null">
+            AND SIP_USER LIKE #{sipUser}
+        </if>
+        <if test="campaignName != '' and campaignName != null">
+            AND CAMPAIGN_NM LIKE #{campaignName}
+        </if>
+        <if test="startDateTime != '' and startDateTime != null and endDateTime != '' and endDateTime != null">
+            <![CDATA[
+            AND (START_TIME >= #{startDateTime} AND END_TIME <= #{endDateTime})
+            ]]>
+        </if>
+        ORDER BY CALL_ID DESC) tmp
+    </select>
+
+    <select id="getAudioInfo" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO" parameterType="ai.maum.biz.fastaicc.main.cousult.callrecording.domain.CallRecordVO">
+        SELECT
+          LAST_CALL_ID AS CALL_ID, CAMPAIGN_ID, CONTRACT_NO
+        FROM CM_CONTRACT
+        WHERE
+          LAST_CALL_ID = #{callId}
+    </select>
+
+    <select id="getSttText" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmSttResultDetailVO" parameterType="ai.maum.biz.fastaicc.main.cousult.callrecording.domain.CallRecordVO">
+        SELECT
+          *
+        FROM CM_STT_RSLT_DETAIL
+        WHERE
+          CALL_ID = #{callId}
+        ORDER BY START_TIME
+    </select>
+</mapper>

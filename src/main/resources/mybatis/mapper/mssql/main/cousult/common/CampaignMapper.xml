@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.CampaignMapper">
+
+	<select id="getCampaignTaskList" parameterType="Integer" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO">
+		SELECT
+			SEQ,
+			CAMPAIGN_ID,
+			CATEGORY,
+			TASK,
+			TASK_TYPE,
+			TASK_ANSWER,
+			TASK_INFO
+		FROM
+			CM_CAMPAIGN_INFO
+		WHERE
+			CAMPAIGN_ID = #{campaignId}
+	</select>
+
+	<select id="getCampaignListByService" parameterType="String" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO">
+		SELECT
+			SERVICE_NM,
+			CAMPAIGN_ID,
+			CAMPAIGN_NM
+		FROM
+			CM_CAMPAIGN_SERVICE
+		WHERE
+			SERVICE_NM = #{serviceName}
+	</select>
+
+	<insert id="createServiceMonitoring" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.MntTargetMngVO" keyProperty="contractNo" useGeneratedKeys="true">
+		INSERT INTO
+			CM_CONTRACT(
+				CAMPAIGN_ID,
+				TEL_NO,
+				IS_INBOUND)
+		VALUES(
+			#{campaignId},
+			#{custTelNo},
+			'N'
+		)
+	</insert>
+
+	<insert id="insertUser" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.MntTargetMngVO" keyProperty="custId" useGeneratedKeys="true">
+		INSERT INTO CUST_BASE_INFO (CUST_NM, CUST_TEL_NO)
+		SELECT #{custNm}, #{custTelNo}
+		FROM DUAL
+		WHERE NOT EXISTS(
+			SELECT
+				*
+			FROM
+				CUST_BASE_INFO
+			WHERE
+				CUST_NM = #{custNm}
+				AND CUST_TEL_NO = #{custTelNo}
+		)
+	</insert>
+
+	<select id="getCampaignList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO">
+		SELECT A.CAMPAIGN_ID AS campaignId, A.CAMPAIGN_NM AS campaignNm 
+		  FROM CM_CAMPAIGN A
+		     , CM_CAMPAIGN B
+		     , CM_COMPANY_CAMPAIGNS C
+<!-- 		     <if test="custOpId != null and custOpId != ''"> -->
+<!-- 		     , SIP_ACCOUNT D -->
+<!-- 		     </if> -->
+		 WHERE A.CAMPAIGN_ID = C.CAMPAIGN_ID
+		   AND C.COMPANY_ID = B.COMPANY_ID
+		   AND B.COMPANY_ID = #{companyId}
+<!-- 		   <if test="custOpId != null and custOpId != ''"> -->
+<!-- 		   AND A.CAMPAIGN_ID = D.CAMPAIGN_ID -->
+<!-- 		   AND D.CUST_OP_ID = #{custOpId} -->
+<!-- 		   </if> -->
+	</select>
+	
+</mapper>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.system.menu.mapper.MenuMapper">
+
+	<!-- 전체 메뉴 -->
+	<select id="getMenu" parameterType="String" resultType="ai.maum.biz.fastaicc.main.system.menu.domain.MenuVO">
+		SELECT B.* FROM TN_MENU B
+		WHERE B.DELETE_AT = 'N'
+		ORDER BY B.MENU_DP,B.SORT_ORDR ASC
+	</select>
+	
+	<!-- 	시스템 메뉴 -->
+	<select id="getUserMenuSystem" parameterType="String" resultType="ai.maum.biz.fastaicc.main.system.menu.domain.MenuVO">
+		SELECT DISTINCT * FROM (
+			SELECT B.* FROM TN_MENU B
+			WHERE B.DELETE_AT = 'N' AND B.USE_AT='Y'
+			AND B.MENU_CODE != 'MENU055' 
+			AND (B.TOP_MENU_CODE != 'MENU055' OR B.TOP_MENU_CODE IS NULL )
+			UNION ALL
+			/** 시스템 메뉴 강제 추가**/
+			SELECT B.* FROM TN_MENU B
+			WHERE ( (B.MENU_CODE = 'MENU043' OR B.TOP_MENU_CODE  = 'MENU043') OR B.MENU_CODE='MENU042')
+		) B
+		ORDER BY B.MENU_DP,B.SORT_ORDR ASC
+	</select>
+	
+	<!-- 	유저 메뉴 -->
+	<select id="getUserMenuUserId" parameterType="String" resultType="ai.maum.biz.fastaicc.main.system.menu.domain.MenuVO">
+		SELECT B.* FROM (
+			SELECT * FROM TN_COMPANY_MENU_GROUP_MENU WHERE COMPANY_GROUP_ID IN(
+				SELECT COMPANY_GROUP_ID FROM TN_COMPANY_MENU_GROUP_USER WHERE USER_ID=#{value}
+			)
+		) A LEFT JOIN TN_MENU B ON A.MENU_CODE=B.MENU_CODE
+		WHERE B.DELETE_AT = 'N' AND B.USE_AT='Y'
+		ORDER BY B.MENU_DP,B.SORT_ORDR ASC
+	</select>
+	
+	<!-- 	회사관리자 메뉴 -->
+	<select id="getUserMenuCompanyId" parameterType="String" resultType="ai.maum.biz.fastaicc.main.system.menu.domain.MenuVO">
+		SELECT DISTINCT * FROM (
+			SELECT B.* FROM TN_COMPANY_MENU A LEFT JOIN TN_MENU B ON A.MENU_CODE=B.MENU_CODE
+			WHERE (A.COMPANY_ID=(SELECT COMPANY_ID FROM TN_USER WHERE USER_ID=#{value}) AND B.DELETE_AT = 'N' AND B.USE_AT='Y')
+			UNION ALL
+			/** 관리자 메뉴 강제 추가**/
+			SELECT B.* FROM TN_MENU B
+			WHERE ( (B.MENU_CODE = 'MENU055' OR B.TOP_MENU_CODE  = 'MENU055') OR B.MENU_CODE='MENU042')
+		) B
+		ORDER BY B.MENU_DP,B.SORT_ORDR ASC
+	</select>
+
+	<!-- 전체메뉴에서 회사,관리자 메뉴제외  사용자 메뉴만-->
+	<select id="getUserMenuAll" parameterType="String" resultType="ai.maum.biz.fastaicc.main.system.menu.domain.MenuVO">
+		SELECT B.* FROM TN_MENU B
+		WHERE B.DELETE_AT = 'N' AND B.USE_AT='Y'
+		AND B.PARNTS_MENU_CODE != 'MENU042' 
+		ORDER BY B.MENU_DP,B.SORT_ORDR ASC
+	</select>
+	
+	<!-- 회사에 부여된 메뉴에서 회사,관리자 메뉴제외-->
+	<select id="getUserMenuCompany" parameterType="String" resultType="ai.maum.biz.fastaicc.main.system.menu.domain.MenuVO">
+		SELECT B.* FROM TN_COMPANY_MENU A LEFT JOIN TN_MENU B ON A.MENU_CODE=B.MENU_CODE
+		WHERE (A.COMPANY_ID=(SELECT COMPANY_ID FROM TN_USER WHERE USER_ID=#{value}) AND B.DELETE_AT = 'N' AND B.USE_AT='Y')
+		AND PARNTS_MENU_CODE !='MENU042'
+	</select>
+	
+
+</mapper>

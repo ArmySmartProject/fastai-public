@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.voiceBot.mapper.VoiceBotManageMapper">
+
+    <select id="getVoiceBotList" parameterType="map" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.VoiceBotVO">
+        SELECT DISTINCT C.CAMPAIGN_NM, C.DESCRIPTION, C.LANG, C.CAMPAIGN_ID, C.IS_INBOUND, A.COMPANY_ID, (SELECT COUNT(D.SIP_USER) FROM SIP_ACCOUNT D WHERE D.CAMPAIGN_ID = C.CAMPAIGN_ID) AS LINESCOUNT,
+        (SELECT COUNT(CASE WHEN D.CUST_OP_ID='' THEN NULL ELSE D.CUST_OP_ID END) FROM SIP_ACCOUNT D WHERE D.CAMPAIGN_ID = C.CAMPAIGN_ID) AS LINEASSIGNED,
+        IFNULL((SELECT E.NAME FROM SIMPLEBOT E WHERE C.SIMPLEBOT_ID = E.ID),'-') AS scenarioName
+        FROM TN_USER A, CM_COMPANY_CAMPAIGNS B, CM_CAMPAIGN C, SIP_ACCOUNT D
+        WHERE A.COMPANY_ID = B.COMPANY_ID AND B.CAMPAIGN_ID = C.CAMPAIGN_ID AND C.CAMPAIGN_ID = D.CAMPAIGN_ID
+        AND A.USER_ID = #{userId}
+        <if test="voicebotName != null and voicebotName != ''">
+            AND REPLACE(C.CAMPAIGN_NM, ' ', '') LIKE CONCAT('%', #{voicebotName}, '%')
+        </if>
+    </select>
+
+    <select id="getSipAccountList" parameterType="String" resultType="ai.maum.biz.fastaicc.main.cousult.inbound.domain.SipAccountVO">
+        SELECT A.SIP_USER, A.CUST_OP_ID, B.IS_INBOUND, B.SIMPLEBOT_ID FROM SIP_ACCOUNT A, CM_CAMPAIGN B
+        WHERE A.CAMPAIGN_ID = B.CAMPAIGN_ID AND B.CAMPAIGN_ID = #{campaignId}
+    </select>
+
+    <select id="getConsultantList" parameterType="map" resultType="ai.maum.biz.fastaicc.main.cousult.voiceBot.domain.ConsultantVO">
+        SELECT A.USER_NM, A.USER_ID, (SELECT COUNT(B.CUST_OP_ID)
+        FROM SIP_ACCOUNT B WHERE B.CUST_OP_ID = A.USER_ID) AS ASSIGNEDCT FROM TN_USER A
+        WHERE A.COMPANY_ID = #{companyId} AND A.USER_ID != #{consultantId} AND (A.USER_AUTH_TY = 'A' OR A.USER_AUTH_TY = 'N') ORDER BY ASSIGNEDCT, USER_NM
+    </select>
+
+    <select id="getAssignedCt" parameterType="String" resultType="ai.maum.biz.fastaicc.main.cousult.voiceBot.domain.ConsultantVO">
+        SELECT A.USER_NM, A.USER_ID, (SELECT COUNT(B.CUST_OP_ID)
+        FROM SIP_ACCOUNT B WHERE B.CUST_OP_ID = A.USER_ID) AS ASSIGNEDCT FROM TN_USER A
+        WHERE A.USER_ID = #{consultantId}
+    </select>
+
+    <select id="getConsultantCount" parameterType="String" resultType="int">
+        SELECT COUNT(USER_ID) FROM TN_USER WHERE COMPANY_ID = #{companyId}
+                        AND (USER_AUTH_TY = 'A' OR USER_AUTH_TY = 'N')
+    </select>
+
+    <update id="updateAssignedCst" parameterType="ai.maum.biz.fastaicc.main.cousult.inbound.domain.SipAccountVO">
+        UPDATE SIP_ACCOUNT SET CUST_OP_ID = #{custOpId}, UPDATER_ID = #{updaterId}
+        WHERE SIP_USER = #{sipUser} AND CAMPAIGN_ID = #{campaignId}
+    </update>
+
+    <select id="getUpdate" parameterType="ai.maum.biz.fastaicc.main.cousult.inbound.domain.SipAccountVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.VoiceBotVO">
+        SELECT UPDATER_ID, UPDATED_DTM FROM SIP_ACCOUNT WHERE CAMPAIGN_ID = #{campaignId} ORDER BY UPDATED_DTM DESC
+    </select>
+
+    <update id="updateSimpleBotMapping" parameterType="map">
+        UPDATE CM_CAMPAIGN SET SIMPLEBOT_ID=#{simplebotId} WHERE CAMPAIGN_ID=#{campaignId}
+    </update>
+    
+    <select id="getScenarioList" parameterType="String" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.VoiceBotVO">
+    	SELECT ID, NAME, COMPANY_ID FROM SIMPLEBOT WHERE COMPANY_ID = #{companyId}
+    </select>
+
+</mapper>

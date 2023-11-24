@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.CallbackMapper">
+
+	<select id="getCallbackTargetList" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+		<![CDATA[
+			SELECT
+				*
+			FROM
+				CM_CONTRACT T1
+				JOIN
+				CALL_HISTORY T2
+				ON T1.LAST_CALL_ID = T2.CALL_ID
+			WHERE callback_status = 'CB0002'
+				AND call_status <> 'CS0008'
+				AND DATE(callback_dt) = DATE(addtime(now(), ':10'))
+				AND HOUR(callback_dt) = HOUR(addtime(now(), ':10'))
+		]]>
+	</select>
+
+	<!-- 페이지 1건 정보 -->
+	<select id="getResultMntTotalCount" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CallbackVO" resultType="int">
+		SELECT
+			count(*) as count
+		FROM
+			CM_CONTRACT T1
+			JOIN
+			CALL_HISTORY T2
+			ON T1.LAST_CALL_ID = T2.CALL_ID
+			LEFT OUTER JOIN
+			CM_CAMPAIGN T3
+			ON T1.CAMPAIGN_ID = T3.CAMPAIGN_ID
+			JOIN
+			CM_COMMON_CD T4
+			ON T2.CALLBACK_STATUS = T4.CODE
+			LEFT OUTER JOIN
+			CUST_BASE_INFO T5
+			ON T1.CUST_ID = T5.CUST_ID
+		<trim prefix="WHERE" prefixOverrides="AND|OR">
+			AND T1.IS_INBOUND = 'N'
+			<if test="schCampaignId != null and schCampaignId != ''">
+				<!-- 계약 종류 -->
+				AND T1.CAMPAIGN_ID = #{schCampaignId}
+			</if>
+			<if test="schCustNm != null and schCustNm != '' ">
+				<!-- 고객명 -->
+				AND T5.CUST_NM like CONCAT('%', #{schCustNm}, '%')
+			</if>
+			<if test="schCustTelNo != null and schCustTelNo != '' ">
+				<!-- 전화번호 -->
+				AND T5.CUST_TEL_NO = ${schCustTelNo}
+			</if>
+			<if test="schCallbackStatus != null and schCallbackStatus != '' ">
+				<!-- 콜백대상여부 -->
+				AND T2.CALLBACK_STATUS = #{schCallbackStatus}
+			</if>
+			<if test="schCallbackDt != null and schCallbackDt != '' ">
+				<!-- 콜백일자 -->
+				AND T2.CALLBACK_DT BETWEEN CONCAT(#{schCallbackDt}, ' 00:00') AND CONCAT(#{schCallbackDt}, ' 23:59')
+			</if>
+		</trim>
+	</select>
+
+	<!-- 콜백 리스트 검색 -->
+	<select id="getCallbackList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CallbackVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+		SELECT
+			T1.CONTRACT_NO,
+			T3.CAMPAIGN_NM,
+			T5.CUST_NM,
+			T4.CD_DESC AS CALLBACK_YN,
+			T2.CALLBACK_DT,
+			T1.LAST_CALL_ID,
+			T5.CUST_TEL_NO AS TEL_NO
+		FROM
+			CM_CONTRACT T1
+			JOIN
+			CALL_HISTORY T2
+			ON T1.LAST_CALL_ID = T2.CALL_ID
+			LEFT OUTER JOIN
+			CM_CAMPAIGN T3
+			ON T1.CAMPAIGN_ID = T3.CAMPAIGN_ID
+			JOIN
+			CM_COMMON_CD T4
+			ON T2.CALLBACK_STATUS = T4.CODE
+			LEFT OUTER JOIN
+			CUST_BASE_INFO T5
+			ON T1.CUST_ID = T5.CUST_ID
+		<trim prefix="WHERE" prefixOverrides="AND|OR">
+			AND T1.IS_INBOUND = 'N'
+			<if test="schCampaignId != null and schCampaignId != ''">
+				<!-- 계약 종류 -->
+				AND T1.CAMPAIGN_ID = #{schCampaignId}
+			</if>
+			<if test="schCustNm != null and schCustNm != '' ">
+				<!-- 고객명 -->
+				AND T5.CUST_NM like CONCAT('%', #{schCustNm}, '%')
+			</if>
+			<if test="schCustTelNo != null and schCustTelNo != '' ">
+				<!-- 전화번호 -->
+				AND T5.CUST_TEL_NO = ${schCustTelNo}
+			</if>
+			<if test="schCallbackStatus != null and schCallbackStatus != '' ">
+				<!-- 콜백대상여부 -->
+				AND T2.CALLBACK_STATUS = #{schCallbackStatus}
+			</if>
+			<if test="schCallbackDt != null and schCallbackDt != '' ">
+				<!-- 콜백일자 -->
+				AND T2.CALLBACK_DT BETWEEN CONCAT(#{schCallbackDt}, ' 00:00') AND CONCAT(#{schCallbackDt}, ' 23:59')
+			</if>
+		</trim>
+		<if test="sortingTarget != null and sortingTarget != '' ">
+			ORDER BY ${sortingTarget} ${direction}
+		</if>
+		<if test="sortingTarget == null or sortingTarget == '' ">
+			ORDER BY T1.CONTRACT_NO DESC
+		</if>
+		LIMIT ${startRow}, ${pageInitPerPage}
+	</select>
+
+	<!-- 체크된 계약 콜백 취소 -->
+	<update id="undoCallback" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CallbackVO">
+		UPDATE CALL_HISTORY
+		SET CALLBACK_STATUS = 'CB0001',
+			UPDATER_ID = #{userId},
+			UPDATED_DTM =NOW()
+		WHERE CALL_ID in (
+		<foreach collection="callIdList" item="callIdItem" index="index" separator=",">
+			#{callIdItem}
+		</foreach>
+		)
+	</update>
+
+	<!-- 체크된 계약 콜백 지정 -->
+	<update id="doCallback" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CallbackVO">
+		UPDATE CALL_HISTORY
+		SET CALLBACK_STATUS = 'CB0002',
+			CALLBACK_DT = NOW() + INTERVAL 1 HOUR,
+			UPDATER_ID = #{userId},
+			UPDATED_DTM =NOW()
+		WHERE CALL_ID in (
+		<foreach collection="callIdList" item="callIdItem" index="index" separator=",">
+			#{callIdItem}
+		</foreach>
+		)
+	</update>
+
+	<!-- 모니터링 대상 업로드 - 1 row 수정된 내용 저장 -->
+	<update id="doCallbackModifiedRow" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CallbackVO">
+		UPDATE
+			CALL_HISTORY
+		SET CALLBACK_DT = (CASE WHEN #{modifyingCallbackDt} = '' THEN null ELSE #{modifyingCallbackDt} END),
+			UPDATER_ID = #{userId},
+			UPDATED_DTM =NOW()
+		WHERE CALL_ID = #{callId}
+	</update>
+
+</mapper>

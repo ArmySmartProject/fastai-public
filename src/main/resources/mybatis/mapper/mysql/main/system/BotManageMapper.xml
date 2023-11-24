@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.system.admin.botMapper.BotManageMapper">
+
+	<select id="selectAccountList" parameterType="map" resultType="map">
+		<![CDATA[
+			SELECT *
+			FROM Account
+		    WHERE Host <> '' ORDER BY Host;
+		]]>
+	</select>
+
+	<select id="selectAccountListByNo" parameterType="map" resultType="map">
+		<![CDATA[
+			SELECT *
+			FROM Account
+			WHERE No IN
+		]]>
+		<foreach collection="botIds" item="botId" index="index" separator="," open="(" close=")">
+			#{botId}
+		</foreach>
+		<![CDATA[
+		    ORDER BY Host;
+		]]>
+	</select>
+
+</mapper>

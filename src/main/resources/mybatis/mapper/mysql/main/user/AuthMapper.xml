@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.user.mapper.AuthMapper">
+
+	<select id="getAccount" parameterType="String" resultType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		SELECT
+			*
+		FROM TN_USER
+		WHERE USER_ID = #{USER_ID}
+	</select>
+
+	<update id="addPwError" parameterType="map">
+		UPDATE TN_USER
+		SET PW_ERROR = #{PW_ERROR}
+		WHERE USER_ID = #{USER_ID}
+	</update>
+
+	<!--팝업창에 Id와 일치하는 계정 정보 조회해옴-->
+	<select id="getAccountById" parameterType="int" resultType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		SELECT
+			*
+		FROM TN_USER
+		WHERE USER_NO = #{id}
+	</select>
+
+	<select id="getAllAccounts" resultType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		SELECT
+			*
+		FROM TN_USER
+	</select>
+
+	<!-- 아이디 중복 체크	-->
+	<select id="checkDup" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO" resultType="int">
+		SELECT count(*) FROM TN_USER WHERE USER_ID = #{USER_ID}
+	</select>
+
+	<!-- 사용자 추가 -->
+	<insert id="insertUser" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		INSERT INTO
+		 TN_USER (USER_ID, USER_PW, REGISTER_ID, REGIST_DT)
+		VALUES(#{userId}, #{userPw}, #{userId}, NOW())
+	</insert>
+
+	<!-- SSO 연동 사용자 추가 -->
+	<insert id="insertSsoUser" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		/* insertCompanyInfo - superadmin COMPANY 추가 */
+		INSERT INTO TN_USER(USER_ID, COMPANY_ID, USER_AUTH_TY, SBSCRB_TY, USER_PW, USER_NM, EMAIL, LOGIN_FAIL_CNT, REGIST_DT)
+	    VALUES(#{userId}, #{companyId}, #{userAuthTy}, #{sbscrbTy}, #{userPw}, #{userNm}, #{email}, #{loginFailCnt}, NOW())
+			   ON DUPLICATE KEY
+			   UPDATE
+				DELETE_AT       = 'N', 
+				UPDT_DT         = NOW()
+				
+	</insert>
+
+	<!-- 수정한 정보 업데이트 -->
+	<update id="updateAccount" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		UPDATE TN_USER
+		SET  USER_NM = #{name}
+			,USER_PW = #{newPassword}
+			,UPDUSR_ID = #{userId}
+			,UPDT_DT = NOW()
+		WHERE USER_NO = #{userId}
+	</update>
+
+	<!-- 체크된 계정 비활성화 -->
+	<update id="disableAccount" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		UPDATE TN_USER
+		SET ENABLED_YN = 'N'
+			,UPDATER_ID = #{userId}
+			,UPDATED_DTM = NOW()
+		WHERE USER_NO in (
+		<foreach collection="accountCheckedList" item="checked_id" index="index" separator=",">
+			#{checked_id}
+		</foreach>
+		)
+	</update>
+
+	<!-- 체크된 계정 활성화 -->
+	<update id="enableAccount" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		UPDATE TN_USER
+		SET ENABLED_YN = 'Y'
+			,UPDATER_ID = #{userId}
+			,UPDATED_DTM = NOW()
+		WHERE USER_NO in (
+		<foreach collection="accountCheckedList" item="checked_id" index="index" separator=",">
+			#{checked_id}
+		</foreach>
+		)
+	</update>
+
+	<!-- 사용자 관리 리스트 -->
+	<select id="getUserList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		SELECT
+				USER_NO, USER_ID, USER_NM, REGIST_DT, UPDT_DT, ENABLED_YN
+		FROM TN_USER
+		<if test="sortingTarget != null and sortingTarget != '' ">
+			ORDER BY ${sortingTarget} ${direction}
+		</if>
+		limit ${startRow}, ${pageInitPerPage}
+	</select>
+
+	<!-- 페이지 1건 정보 -->
+	<select id="getresultUserTotalCount" resultType="int">
+		SELECT /* getresultUserTotalCount */
+		count(*) as count
+		FROM TN_USER
+	</select>
+	
+	<!-- 로그인 일자 및 sessionid 변경-->
+	<update id="updateLoginDt" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		UPDATE TN_USER SET RECENT_CONECT_DT=NOW(),SESSION_ID=#{sessionId} WHERE USER_ID=#{userId}
+	</update>
+	
+	<select id="getSessionId" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO" resultType="String">
+		SELECT /* getSessionId */
+			SESSION_ID
+		FROM 
+			TN_USER
+		WHERE 
+			USER_ID=#{userId}
+	</select>
+</mapper>

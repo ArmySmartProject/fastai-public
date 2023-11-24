@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.outbound.mapper.UploadUserInfoMapper">
+
+	<!--해당 Campaign Contract, CUST_DATA_CLASS UseYN 업데이트-->
+	<update id="updateCtCustClassUse" parameterType="String">
+		UPDATE CM_CONTRACT
+		SET USE_YN = 'N'
+		WHERE CAMPAIGN_ID = #{campaignId};
+		UPDATE CUST_DATA_CLASS
+		SET USE_YN = 'N'
+		WHERE CAMPAIGN_ID = #{campaignId};
+	</update>
+
+	<!--해당 Campaign CUST_DATA_CLASS UseYN 업데이트-->
+	<update id="updateCustDataClassUse" parameterType="String">
+		UPDATE CUST_DATA_CLASS
+		SET USE_YN = 'N'
+		WHERE CAMPAIGN_ID = #{campaignId}
+	</update>
+
+	<!--캠페인별 유저 엑셀 데이터 조건 insert-->
+	<insert id="insertCustDataClass" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CustDataClassVO">
+		INSERT INTO
+		 CUST_DATA_CLASS
+		 (CAMPAIGN_ID,
+		  DISPLAY_YN,
+		  OB_CALL_STATUS,
+		  DATA_TYPE,
+		  COLUMN_KOR,
+		  COLUMN_ENG,
+		  CASE_TYPE,
+		  DESCRIPTION,
+		  USE_YN)
+		VALUES
+		(#{campaignId},
+		 #{displayYn},
+		 #{obCallStatus},
+		 (SELECT ID FROM COLUMN_DATA_TYPE WHERE TYPE_NAME = #{dataType}),
+		 #{columnKor},
+		 #{columnEng},
+		 #{caseType},
+		 #{description},
+		 #{useYn})
+	</insert>
+
+	<!--Contract,CustInfo 테이블 insert-->
+	<insert id="insertCtCustInfo" parameterType="java.util.ArrayList">
+		<if test='siteCustom == "hdhs"'>
+			INSERT INTO CUST_BASE_INFO (CUST_ID, CUST_NM, CUST_TEL_NO)
+			VALUES
+			<foreach collection="list" item="item" index="index" close=";" separator=",">
+				(
+				#{item.maxId}
+				#{item.custNm}
+				#{item.custTelNo}
+				)
+			</foreach>
+		</if>
+		INSERT INTO
+		 CUST_INFO
+		 (
+		 <if test='siteCustom == "hdhs"'>
+		  CUST_ID,
+		 </if>
+		  CAMPAIGN_ID,
+		  CUST_NM,
+		  CUST_TEL_NO,
+		  CUST_DATA)
+		VALUES
+		<foreach collection="list" item="item" index="index" close=";" separator=",">
+		(
+			<if test='siteCustom == "hdhs"'>
+			#{item.maxId},
+			</if>
+			#{item.campaignId},
+			#{item.custNm},
+			#{item.custTelNo},
+
+			#{item.custData}
+		)
+		</foreach>
+		INSERT INTO
+		 CM_CONTRACT
+		 (CAMPAIGN_ID,
+		  CUST_ID,
+		  TEL_NO,
+		  CREATOR_ID,
+		  IS_INBOUND)
+		VALUES
+		<foreach collection="list" item="item" index="index" close=";" separator=",">
+		(
+			#{item.campaignId},
+			(SELECT CUST_ID FROM CUST_INFO WHERE CAMPAIGN_ID = #{item.campaignId} AND binary (CUST_TEL_NO) = #{item.custTelNo}),
+			#{item.custTelNo},
+			#{item.custOpId},
+			#{item.isInbound}
+		)
+		</foreach>
+	</insert>
+	
+	<insert id="insertApiCustInfo" parameterType="map">
+		INSERT INTO CUST_INFO ( CAMPAIGN_ID, CUST_NM, CUST_TEL_NO, CUST_DATA )
+		VALUES
+		(
+			#{campaignId}
+		  , #{custNm}
+		  , #{custTelNo}
+		  , #{custData}
+		)            
+	</insert>
+	
+	<insert id="insertApiContract" parameterType="map">
+		INSERT INTO CM_CONTRACT (CAMPAIGN_ID, CUST_ID, TEL_NO, IS_INBOUND)
+		VALUES
+		(
+			#{campaignId}
+		  , #{custId}
+		  , #{custTelNo}
+		  , 'N'
+		)
+	
+	</insert>
+	
+	<update id="updataApiCustInfo" parameterType="map">
+		UPDATE CUST_INFO SET CUST_NM = #{custNm}, CUST_DATA = #{custData}
+		WHERE CAMPAIGN_ID = #{campaignId} AND binary (CUST_TEL_NO) = #{custTelNo}
+	</update>
+	
+	<select id="getApiCustClassDataId" parameterType="String" resultType="map">
+    SELECT CUST_DATA_CLASS_ID as custDataClassId , COLUMN_ENG as columnEng FROM CUST_DATA_CLASS WHERE CAMPAIGN_ID = #{campaignId} AND USE_YN = 'Y'
+	</select>
+	
+	<select id="getApiCustInfoId" parameterType="map" resultType="String">
+	SELECT CUST_ID AS custId FROM CUST_INFO WHERE CAMPAIGN_ID = #{campaignId} AND binary (CUST_TEL_NO) = #{custTelNo}
+	</select>
+	
+	<select id="getApiContractNo" parameterType="map" resultType="String">
+	SELECT CONTRACT_NO AS contractNo FROM CM_CONTRACT WHERE CAMPAIGN_ID = #{campaignId} AND binary (TEL_NO) = #{custTelNo}
+	</select>
+	
+	<!--해당 컬럼의 CUST_DATA_CLASS_ID 값 가져오기-->
+	<select id="getCustClassDataId" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CustDataClassVO" resultType="String">
+    SELECT CUST_DATA_CLASS_ID FROM CUST_DATA_CLASS WHERE COLUMN_KOR = #{columnKor}
+    AND CAMPAIGN_ID = #{campaignId} AND USE_YN = 'Y'
+  </select>
+
+	<!--해당 유저 존재 여부-->
+	<select id="getCustInfo" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CustInfoVO" resultType="map">
+		SELECT CUST_NM AS custNm, CUST_TEL_NO AS custTelNo FROM CUST_INFO WHERE CAMPAIGN_ID = #{campaignId} AND binary (CUST_TEL_NO) = #{custTelNo}
+	</select>
+
+	<!--Contract,CustInfo 테이블 insert-->
+	<update id="updateCtUseCustInfo" parameterType="java.util.ArrayList">
+		UPDATE CM_CONTRACT
+		SET USE_YN = 'Y' WHERE (CAMPAIGN_ID, binary (TEL_NO)) IN
+		<foreach collection="list" item="item" open="(" close=");" index="index" separator=",">
+		(
+			#{item.campaignId},
+			#{item.custTelNo}
+		)
+		</foreach>
+		<foreach collection="list" item="item" index="index" separator=";">
+		UPDATE CUST_INFO
+		SET CUST_NM = #{item.custNm}, CUST_DATA = #{item.custData}
+		WHERE CAMPAIGN_ID = #{item.campaignId} AND binary (CUST_TEL_NO) = #{item.custTelNo}
+		</foreach>
+	</update>
+
+  <select id="selectCustBaseInfoId" resultType="int">
+	  SELECT IFNULL((SELECT CUST_ID FROM CUST_BASE_INFO ORDER BY CUST_ID DESC LIMIT 1),0) AS CUST_BASE_INFO_ID
+	  FROM CUST_BASE_INFO
+	  UNION ALL
+	  SELECT 0 AS CUST_BASE_INFO_ID FROM DUAL LIMIT 1
+  </select>
+
+  <select id="selectCustInfoId" resultType="int">
+	  SELECT IFNULL((SELECT CUST_ID FROM CUST_INFO ORDER BY CUST_ID DESC LIMIT 1),0) AS CUST_INFO_ID
+	  FROM CUST_INFO
+	  UNION ALL
+	  SELECT 0 AS CUST_INFO_ID FROM DUAL LIMIT 1
+  </select>
+
+</mapper>

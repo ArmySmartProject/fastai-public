@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.autocall.mapper.AutoCallMapper">
+	<select id="selectAutoCallCondition" parameterType="java.util.ArrayList" resultType="map">
+		/* *BATCH_LOG* */
+		select ID
+			 , 'Y' AS batch_yn
+		from AUTO_CALL_CONDITION C
+		where 1 = 1
+		  and USE_YN = 'Y'
+		  and ACTIVE_STATUS = 1
+		  and (START_DTM <![CDATA[<=]]> convert(varchar, #{currentTime}, 23) and END_DTM <![CDATA[>=]]> convert(varchar, #{currentTime}, 23))
+		  and (WEEK_DAY LIKE CONCAT('%', DATEPART(WEEKDAY, #{currentTime}),'%'))
+		  and format(convert(DATETIME, DISPATCH_TIME, 108), 'HH:mm') = CONCAT(format(convert(datetime, #{currentTime}), 'HH'), ':', format(convert(datetime, #{currentTime}), 'mm') / 10, '0')
+	</select>
+	
+	<select id="selectMsgTalkCondition" parameterType="java.util.ArrayList" resultType="map">
+		/* *BATCH_LOG* */
+		select ID
+			 , 'Y' AS batch_yn
+		from AUTO_CALL_CONDITION C
+		where 1 = 1
+		  and USE_YN = 'Y'
+		  and ACTIVE_STATUS = 1
+		  and (START_DTM <![CDATA[<=]]> convert(varchar, #{currentTime}, 23) and END_DTM <![CDATA[>=]]> convert(varchar, #{currentTime}, 23))
+		  and (WEEK_DAY LIKE CONCAT('%', DATEPART(WEEKDAY, #{currentTime}),'%'))
+	</select>
+
+	<insert id="insertConditionHistory" parameterType="map" useGeneratedKeys="true" keyProperty="historyId">
+		/* *BATCH_LOG* */
+        insert into AUTO_CALL_CD_HISTORY
+          (CD_NAME, START_DTM, END_DTM, CREATOR, CREATE_DTM, WEEK_DAY, DISPATCH_TIME, CD_DESC, CALL_TIME, AUTO_CALL_CD_CUSTOM_IDS)
+        select CD_NAME, START_DTM, END_DTM, CREATOR, CREATE_DTM, WEEK_DAY, DISPATCH_TIME, CD_DESC, SYSDATETIME(),
+          stuff((select ',' + convert(nvarchar(10),ID) from AUTO_CALL_CONDITION_CUSTOM b where b.AUTO_CALL_CONDITION_ID = #{conditionId} FOR XML PATH('') ),1,1,'')
+        from AUTO_CALL_CONDITION where id = #{conditionId}
+	</insert>
+
+	<insert id="insertAutoCallHistory" parameterType="map">
+		/* *BATCH_LOG* */
+		insert into AUTO_CALL_HISTORY (CD_HISTORY_ID, CONTRACT_NO, CAMPAIGN_ID, VALID_YN)
+		VALUES (#{cdHistoryId}, #{contractNo}, #{campaignId}, #{validYn})
+	</insert>
+</mapper>

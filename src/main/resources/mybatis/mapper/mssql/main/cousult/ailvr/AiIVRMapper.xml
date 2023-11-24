@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.ailvr.mapper.AiIVRMapper">
+
+    <!-- companyId 조회 -->
+    <select id="getCompanyIdList"  resultType="ai.maum.biz.fastaicc.main.cousult.ailvr.domain.AiIVRVO"  parameterType="String">
+        SELECT /* getCompanyIdList */
+               COMPANY_ID AS companyId, COMPANY_NAME AS companyName, COMPANY_NAME_EN AS companyNameEN
+          FROM CM_COMPANY
+         WHERE 1=1
+           AND DELETE_AT = 'N'
+           <if test="_parameter  != null and _parameter !=''">
+           AND COMPANY_ID = #{value}
+           </if>
+         ORDER BY COMPANY_ID
+    </select>
+    
+    <!-- sip accout 조회 -->
+    <select id="getSipAccount"  parameterType="map"  resultType="map">
+        SELECT /* getSipAccount */
+               SIP_USER
+             , CASE LEFT(ACCOUNT, 2)
+                 WHEN '02' THEN
+                     CASE CHAR_LENGTH(ACCOUNT)
+                         WHEN '9' THEN CONCAT('02','-', SUBSTRING(ACCOUNT,3,3),'-',RIGHT(ACCOUNT,4))
+                         WHEN '10' THEN CONCAT('02','-', SUBSTRING(ACCOUNT,3,4),'-',RIGHT(ACCOUNT,4))
+                         ELSE ACCOUNT
+                     END
+                 ELSE
+                     CASE CHAR_LENGTH(ACCOUNT)
+                         WHEN '10' THEN CONCAT(LEFT(ACCOUNT,3),'-', SUBSTRING(ACCOUNT,4,3),'-',RIGHT(ACCOUNT,4))
+                         WHEN '11' THEN CONCAT(LEFT(ACCOUNT,3),'-', SUBSTRING(ACCOUNT,4,4),'-',RIGHT(ACCOUNT,4))
+                         WHEN '8' THEN CONCAT(LEFT(ACCOUNT,4),'-', RIGHT(ACCOUNT,4))
+                         ELSE ACCOUNT
+                     END
+               END AS ACCOUNT
+          FROM (SELECT A.SIP_USER AS SIP_USER
+                     , CASE
+                         WHEN A.TEL_URI IS NULL OR A.TEL_URI = '' THEN A.SIP_USER
+                         ELSE
+                           CASE
+                             WHEN A.SIP_USER = A.TEL_URI OR A.SIP_USER = SUBSTRING(A.TEL_URI, -4) THEN A.TEL_URI
+                             WHEN A.SIP_USER != A.TEL_URI THEN CONCAT(A.TEL_URI, A.SIP_USER)
+                             ELSE A.SIP_USER
+                           END
+                       END AS ACCOUNT
+                  FROM SIP_ACCOUNT A 
+                  LEFT JOIN TN_USER B 
+                    ON A.CUST_OP_ID = B.USER_ID 
+                 WHERE 1=1 
+                 <if test='userAuthTy == "S"'>
+                     AND A.CUST_OP_ID IN (SELECT USER_ID
+                                            FROM TN_USER
+                                           WHERE 1=1
+                                             AND COMPANY_ID = #{companyId}
+                                           GROUP BY USER_ID)
+                 </if>
+                 <if test='userAuthTy == "O"'>
+                   AND A.CUST_OP_ID = #{userId}
+                 </if>
+                 GROUP BY A.SIP_USER) A
+        ORDER BY SIP_USER
+    </select>
+    
+    <!-- sip accout 조회 -->
+    <select id="getSipAccountList"  parameterType="map"  resultType="String">
+        SELECT /* getSipAccountList */
+               SIP_USER
+          FROM (SELECT A.SIP_USER AS SIP_USER
+                     , CASE
+                         WHEN A.TEL_URI IS NULL OR A.TEL_URI = '' THEN A.SIP_USER
+                         ELSE
+                           CASE
+                             WHEN A.SIP_USER = A.TEL_URI OR A.SIP_USER = SUBSTRING(A.TEL_URI, -4) THEN A.TEL_URI
+                             WHEN A.SIP_USER != A.TEL_URI THEN CONCAT(A.TEL_URI, A.SIP_USER)
+                             ELSE A.SIP_USER
+                           END
+                       END AS ACCOUNT
+                  FROM SIP_ACCOUNT A 
+                  LEFT JOIN TN_USER B 
+                    ON A.CUST_OP_ID = B.USER_ID 
+                 WHERE 1=1 
+                 <if test='userAuthTy == "S"'>
+                     AND A.CUST_OP_ID IN (SELECT USER_ID
+                                            FROM TN_USER
+                                           WHERE 1=1
+                                             AND COMPANY_ID = #{companyId}
+                                           GROUP BY USER_ID)
+                 </if>
+                 <if test='userAuthTy == "O"'>
+                   AND A.CUST_OP_ID = #{userId}
+                 </if>
+                 GROUP BY A.SIP_USER) A
+        ORDER BY SIP_USER
+    </select>
+    
+	<select id="getAiIVRMonitoringList"  parameterType="map"  resultType="map">
+        SELECT /* getAiIVRMonitoringList */
+               IFNULL(A.CALL_ID, '-')       AS callId
+             , IFNULL(A.CUST_OP_ID, '-')    AS custOpId
+             , IFNULL(A.CONTRACT_NO, '-')   AS contractNo
+             , IFNULL(A.START_TIME, '-')    AS startTime
+             , IFNULL(A.END_TIME, '-')      AS endTime
+             , IFNULL(
+                 CASE LEFT(B.TEL_NO, 2)
+                    WHEN '02' THEN
+                        CASE CHAR_LENGTH(B.TEL_NO)
+                            WHEN '9' THEN CONCAT('02','-', SUBSTRING(B.TEL_NO,3,3),'-',RIGHT(B.TEL_NO,4))
+                            WHEN '10' THEN CONCAT('02','-', SUBSTRING(B.TEL_NO,3,4),'-',RIGHT(B.TEL_NO,4))
+                            ELSE B.TEL_NO
+                        END
+                    ELSE
+                        CASE CHAR_LENGTH(B.TEL_NO)
+                            WHEN '10' THEN CONCAT(LEFT(B.TEL_NO,3),'-', SUBSTRING(B.TEL_NO,4,3),'-',RIGHT(B.TEL_NO,4))
+                            WHEN '11' THEN CONCAT(LEFT(B.TEL_NO,3),'-', SUBSTRING(B.TEL_NO,4,4),'-',RIGHT(B.TEL_NO,4))
+                            WHEN '8' THEN CONCAT(LEFT(B.TEL_NO,4),'-', RIGHT(B.TEL_NO,4))
+                            ELSE B.TEL_NO
+                        END
+                 END, '-') AS telNo
+             , B.CAMPAIGN_ID                AS campaignId
+             , A.CALL_TYPE_CODE             AS callTypeCode
+             , CASE LEFT(A.SIP_USER, 2)
+                 WHEN '02' THEN
+                     CASE CHAR_LENGTH(A.SIP_USER)
+                         WHEN '9' THEN CONCAT('02','-', SUBSTRING(A.SIP_USER,3,3),'-',RIGHT(A.SIP_USER,4))
+                         WHEN '10' THEN CONCAT('02','-', SUBSTRING(A.SIP_USER,3,4),'-',RIGHT(A.SIP_USER,4))
+                         ELSE A.SIP_USER
+                     END
+                 ELSE
+                     CASE CHAR_LENGTH(A.SIP_USER)
+                         WHEN '10' THEN CONCAT(LEFT(A.SIP_USER,3),'-', SUBSTRING(A.SIP_USER,4,3),'-',RIGHT(A.SIP_USER,4))
+                         WHEN '11' THEN CONCAT(LEFT(A.SIP_USER,3),'-', SUBSTRING(A.SIP_USER,4,4),'-',RIGHT(A.SIP_USER,4))
+                         WHEN '8' THEN CONCAT(LEFT(A.SIP_USER,4),'-', RIGHT(A.SIP_USER,4))
+                         ELSE A.SIP_USER
+                     END
+               END AS sipAccount
+             , D.COMPANY_ID                 AS companyId
+             , D.COMPANY_NAME               AS companyNm
+          FROM CALL_HISTORY A
+          LEFT JOIN CM_CONTRACT B
+            ON A.CONTRACT_NO = B.CONTRACT_NO
+          LEFT JOIN TN_USER C
+            ON A.CUST_OP_ID = C.USER_ID
+          LEFT JOIN CM_COMPANY D
+            ON C.COMPANY_ID = D.COMPANY_ID
+         WHERE 1=1
+           AND B.CONTRACT_NO IS NOT NULL
+           <choose>
+               <when test="sipUser != null and sipUser !=''">
+                   AND A.SIP_USER = #{sipUser}
+               </when>
+               <otherwise>
+                   <if test="sipList != null and sipList.size != 0">
+                     AND A.SIP_USER IN
+                       <foreach collection="sipList" item="sipUserItem" open="(" close=")" separator=",">
+                         #{sipUserItem}
+                       </foreach>
+                   </if>
+               </otherwise>
+           </choose>
+           <if test="callId != null and callId !=''">
+           AND A.CALL_ID LIKE CONCAT('%', #{callId}, '%')
+           </if>
+           <if test="contractNo != null and contractNo !=''">
+           AND A.CONTRACT_NO LIKE CONCAT('%', #{contractNo}, '%')
+           </if>
+           <if test="telNo != null and telNo !=''">
+           AND B.TEL_NO LIKE CONCAT('%', #{telNo}, '%')
+           </if>
+           <if test="startDate != null and startDate !=''">
+           AND A.START_TIME <![CDATA[ >= ]]> #{startDate}
+           </if>
+           <if test="endDate != null and endDate !=''">
+           AND A.END_TIME <![CDATA[ <= ]]> #{endDate}
+           </if>
+           <if test="companyId != null and companyId !=''">
+           AND C.COMPANY_ID = #{companyId}
+           </if>
+         ORDER BY A.START_TIME DESC
+         <choose>
+            <when test='page == lastpage'>
+                LIMIT #{endPageCnt, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+            </when>
+            <otherwise>
+                LIMIT #{rowNum, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}	
+            </otherwise>
+        </choose>
+    </select>
+    
+    <!-- sip accout 조회 -->
+    <select id="getAiIVRMonitoringCount"  parameterType="map"  resultType="int">
+        SELECT /* getAiIVRMonitoringCount */
+               COUNT(*) AS cnt
+          FROM CALL_HISTORY A
+          LEFT JOIN CM_CONTRACT B
+            ON A.CONTRACT_NO = B.CONTRACT_NO
+          LEFT JOIN TN_USER C
+            ON A.CUST_OP_ID = C.USER_ID
+          LEFT JOIN CM_COMPANY D
+            ON C.COMPANY_ID = D.COMPANY_ID
+         WHERE 1=1
+           AND B.CONTRACT_NO IS NOT NULL
+           <if test="sipUser != null and sipUser !=''">
+           AND A.SIP_USER = #{sipUser}
+           </if>
+           <if test="callId != null and callId !=''">
+           AND A.CALL_ID LIKE CONCAT('%', #{callId}, '%')
+           </if>
+           <if test="contractNo != null and contractNo !=''">
+           AND A.CONTRACT_NO LIKE CONCAT('%', #{contractNo}, '%')
+           </if>
+           <if test="telNo != null and telNo !=''">
+           AND B.TEL_NO LIKE CONCAT('%', #{telNo}, '%')
+           </if>
+           <if test="startDate != null and startDate !=''">
+           AND A.START_TIME <![CDATA[ >= ]]> #{startDate}
+           </if>
+           <if test="endDate != null and endDate !=''">
+           AND A.END_TIME <![CDATA[ <= ]]> #{endDate}
+           </if>
+           <if test="companyId != null and companyId !=''">
+           AND C.COMPANY_ID = #{companyId}
+           </if>
+    </select>
+    
+    <!-- Intent 조회 -->
+    <select id="getObIntentList"  parameterType="map"  resultType="map">
+        SELECT /* getObIntentList */
+               SEQ_NUM, INFO_SEQ, CATEGORY, ISNULL(TASK_VALUE, '-') AS TASK_VALUE, TASK_INFO, tb1.SEQ, tb2.CREATED_DTM, tb2.UPDATED_DTM
+          FROM CM_CAMPAIGN_INFO tb1
+         INNER JOIN CM_CAMPAIGN_SCORE tb2 ON tb1.SEQ = tb2.INFO_SEQ
+         WHERE 1=1 
+            AND tb1.CAMPAIGN_ID = #{campaignId}
+           AND tb2.CALL_ID = #{callId}
+         ORDER BY tb1.SEQ
+    </select>
+    
+    <select id="getIbIntentList"  parameterType="map"  resultType="map">
+        SELECT /* getIbIntentList */
+               SEQ_NUM, INFO_SEQ, CATEGORY, ISNULL(TASK_VALUE, '-') AS TASK_VALUE, TASK_INFO, tb1.SEQ
+          FROM CM_CAMPAIGN_INFO tb1
+         INNER JOIN CM_CAMPAIGN_SCORE tb2 ON tb1.SEQ = tb2.INFO_SEQ
+         WHERE 1=1 
+           AND tb1.CAMPAIGN_ID = #{campaignId}
+           AND tb2.CALL_ID = #{callId}
+         ORDER BY tb1.SEQ
+    </select>
+    
+    <!-- ivr bot 내용 조회 -->
+    <select id="getIVRBotContentsList"  parameterType="map"  resultType="map">
+        SELECT /* getIVRBotContentsList */
+               STT_RESULT_DETAIL_ID, STT_RESULT_ID, CALL_ID, SPEAKER_CODE, IGNORED
+             , SENTENCE_ID, SENTENCE, CONCAT(START_TIME,'') AS START_TIME, CONCAT(END_TIME,'') AS END_TIME
+             , SPEED, SILENCE_YN, CREATED_DTM, UPDATED_DTM, CREATOR_ID, UPDATER_ID
+          FROM CM_STT_RSLT_DETAIL
+         WHERE CALL_ID = #{callId}
+         ORDER BY STT_RESULT_DETAIL_ID ASC
+    </select>
+    
+    <!-- 고객 name, phone 조회 -->
+    <select id="getCustInfoForIVR"  parameterType="map"  resultType="map">
+        SELECT /* getCustInfoForIVR */
+               B.CUST_NM
+             , IFNULL(
+                 CASE LEFT(B.CUST_TEL_NO, 2)
+                    WHEN '02' THEN
+                        CASE CHAR_LENGTH(B.CUST_TEL_NO)
+                            WHEN '9' THEN CONCAT('02','-', SUBSTRING(B.CUST_TEL_NO,3,3),'-',RIGHT(B.CUST_TEL_NO,4))
+                            WHEN '10' THEN CONCAT('02','-', SUBSTRING(B.CUST_TEL_NO,3,4),'-',RIGHT(B.CUST_TEL_NO,4))
+                            ELSE B.CUST_TEL_NO
+                        END
+                    ELSE
+                        CASE CHAR_LENGTH(B.CUST_TEL_NO)
+                            WHEN '10' THEN CONCAT(LEFT(B.CUST_TEL_NO,3),'-', SUBSTRING(B.CUST_TEL_NO,4,3),'-',RIGHT(B.CUST_TEL_NO,4))
+                            WHEN '11' THEN CONCAT(LEFT(B.CUST_TEL_NO,3),'-', SUBSTRING(B.CUST_TEL_NO,4,4),'-',RIGHT(B.CUST_TEL_NO,4))
+                            WHEN '8' THEN CONCAT(LEFT(B.CUST_TEL_NO,4),'-', RIGHT(B.CUST_TEL_NO,4))
+                            ELSE B.CUST_TEL_NO
+                        END
+                 END, '-') AS CUST_TEL_NO
+          FROM CM_CONTRACT A
+          JOIN CUST_BASE_INFO B ON A.CUST_ID = B.CUST_ID
+          JOIN CALL_HISTORY C ON A.CONTRACT_NO = C.CONTRACT_NO
+         WHERE 1=1
+<!--            AND A.CAMPAIGN_ID = #{campaignId} -->
+           AND C.CALL_ID = #{callId}
+    </select>
+    
+    <select id="getIVRHourStatistics"  parameterType="map"  resultType="map">
+        SELECT /* getIVRHourStatistics */
+               B.DAYHOUR as callHour
+             , IFNULL(A.HOUR_COUNT, 0) AS hourCount
+          FROM (SELECT HOUR(CALL_DATE) AS CALL_HOUR, SUM(1) AS HOUR_COUNT
+                  FROM CALL_HISTORY A
+                  LEFT JOIN TN_USER B
+                    ON A.CUST_OP_ID = B.USER_ID
+                 WHERE 1=1 
+                 <if test="getType == 'search'">
+                     <choose>
+                         <when test="sipUser != null and sipUser !=''">
+                             AND SIP_USER = #{sipUser}
+                         </when>
+                         <otherwise>
+                             <if test="sipList != null and sipList.size != 0">
+                               AND SIP_USER IN
+                                 <foreach collection="sipList" item="sipUserItem" open="(" close=")" separator=",">
+                                   #{sipUserItem}
+                                 </foreach>
+                             </if>
+                         </otherwise>
+                     </choose>
+                     <if test="companyId != null and companyId != ''">
+                      AND B.COMPANY_ID = #{companyId}
+                     </if>
+                 </if>
+                   AND CALL_DATE BETWEEN #{startDate} AND #{endDate}
+                 GROUP BY HOUR(CALL_DATE)) A
+         RIGHT JOIN 
+               (SELECT @curRow := @curRow + 1 AS DAYHOUR
+                  FROM CALL_HISTORY, (SELECT @curRow := -1) r
+                 WHERE @curRow <![CDATA[ < ]]> 23) B
+            ON A.CALL_HOUR = B.DAYHOUR
+         ORDER BY CAST(callHour AS UNSIGNED)
+    </select>
+    
+</mapper>

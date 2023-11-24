@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration scan="true" scanPeriod="30 seconds">
+	
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%d{yyyyMMdd HH:mm:ss.SSS} [%thread] %-3level %logger{5} - %msg %n</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="reservation_log_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${catalina.home}\logs\callRservation-%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>100MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyyyMMdd HH:mm:ss.SSS} [%thread] %-3level %logger{5} - %msg %n</pattern>
+		</encoder>
+		<filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+         <evaluator>
+            <expression>
+               if (event.getLoggerName().startsWith("ai.maum.biz.fastaicc.main.api") || event.getLoggerName().startsWith("ai.maum.biz.fastaicc.main.cousult.autocall") || event.getMessage().contains("*BATCH_LOG*") || event.getMessage().contains("batch_yn")){
+                  return true;
+               }
+               return false;
+            </expression>
+         </evaluator>
+         <OnMismatch>DENY</OnMismatch>
+         <OnMatch>ACCEPT</OnMatch>
+      </filter>
+	</appender>
+
+	<appender name="fast_log_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${catalina.home}\logs\fastAicc-%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>100MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyyyMMdd HH:mm:ss.SSS} [%thread] %-3level %logger{5} - %msg %n</pattern>
+		</encoder>
+	</appender>
+	
+	<logger name="jdbc" level="OFF"/>
+
+	<logger name="jdbc.sqlonly" level="OFF"/>
+	<logger name="jdbc.sqltiming" level="DEBUG"/>
+	<logger name="jdbc.audit" level="OFF"/>
+	<logger name="jdbc.resultset" level="OFF"/>
+	<logger name="jdbc.resultsettable" level="DEBUG"/>
+	<logger name="jdbc.connection" level="OFF"/>
+	
+	<root level="INFO">
+		<appender-ref ref="reservation_log_file"/>
+		<appender-ref ref="fast_log_file" />
+		<appender-ref ref="STDOUT" />
+	</root>
+	
+</configuration>

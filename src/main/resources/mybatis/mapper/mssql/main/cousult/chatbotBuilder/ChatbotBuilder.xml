@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.voiceBot.mapper.VoiceBotManageMapper">
+
+    <select id="getChatbotList" parameterType="map" resultType="map">
+        SELECT botID FROM BotMapping
+        <if test="userId != null and userId != ''">
+            WHERE userId = #{userId}
+        </if>
+        <if test="companyId != null and companyId != ''">
+            WHERE companyId = #{companyId}
+        </if>
+    </select>
+
+    <select id="getMaxChat" parameterType="map" resultType="int">
+        <if test="userId != null and userId != ''">
+            SELECT MAX_CHATBOT FROM TN_USER WHERE USER_ID = #{userId}
+        </if>
+        <if test="companyId != null and companyId != ''">
+            SELECT MAX_CHATBOT FROM CM_COMPANY WHERE COMPANY_ID = #{companyId}
+        </if>
+    </select>
+
+    <insert id="insertBotMapping" parameterType="map">
+        INSERT INTO BotMapping (companyId, userId, botType, botID, lang, updatedAt, updaterId)
+        VALUES
+        (
+        <if test='isGroup == "y"'>
+            #{companyId}, '',
+        </if>
+        <if test='isGroup == "n"'>
+            '', #{sessId},
+        </if>
+        'CHATBOT',
+        #{host},
+        1,
+        NOW(),
+        #{sessId}
+        )
+    </insert>
+
+    <delete id="delBotMapping" parameterType="map">
+        DELETE FROM BOT_MAPPING
+        <if test='isGroup == "y"'>
+            WHERE COMPANY_ID = #{companyId}
+        </if>
+        <if test='isGroup == "n"'>
+            WHERE USER_ID = #{sessId}
+        </if>
+        AND BOT_ID = #{host}
+    </delete>
+
+    <select id="maxChatbotCheck" parameterType="map" resultType="map">
+        SELECT COUNT(DISTINCT a.BOT_ID) AS count, b.MAX_CHATBOT AS userMax, c.MAX_CHATBOT AS compMax
+        FROM BOT_MAPPING a LEFT OUTER JOIN TN_USER b ON a.USER_ID = b.USER_ID
+        LEFT OUTER JOIN CM_COMPANY c ON a.COMPANY_ID = c.COMPANY_ID
+        <if test='isGroup == "y"'>
+            WHERE a.COMPANY_ID = #{companyId}
+        </if>
+        <if test='isGroup == "n"'>
+            WHERE a.USER_ID = #{sessId}
+        </if>
+    </select>
+
+</mapper>

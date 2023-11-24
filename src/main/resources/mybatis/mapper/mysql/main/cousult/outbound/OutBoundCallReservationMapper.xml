@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.outbound.mapper.OutBoundCallReservationMapper">
+
+
+	<select id="getCallReservationList" parameterType="int" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT @rownum := @rownum+1 AS RNUM /* getCallReservationList 예약콜 메인List */
+	   	  	 , A.ID
+			 , IFNULL(DATE_FORMAT(A.START_DTM, '%Y-%m-%d'), '-') AS START_DTM
+			 , IFNULL(DATE_FORMAT(A.END_DTM, '%Y-%m-%d'), '-') AS END_DTM
+			 , IFNULL(DATE_FORMAT(A.DISPATCH_TIME, '%H:%i:%s'), '-') AS DISPATCH_TIME
+		   	 , A.OB_CALL_STATUS
+		   	 , A.CALL_TRY_ACCOUNT
+		   	 , IFNULL(DATE_FORMAT(A.CREATE_DTM, '%Y-%m-%d %H:%i:%s'), '-') AS CREATE_DTM
+		   	 , A.CREATOR
+		   	 , A.CAMPAIGN_ID
+		   	 , A.PROGRESS_STATUS
+		   	 , A.ACTIVE_STATUS
+		   	 , A.USE_YN
+		   	 , A.WEEK_DAY
+		   	 , IFNULL(A.CD_DESC, '-') AS CD_DESC
+		   	 , IFNULL(A.CD_NAME, '-') AS CD_NAME
+		   	 , IFNULL(A.UPDATER, '-') AS UPDATER
+		   	 , IFNULL(DATE_FORMAT(A.UPDATE_DTM, '%Y-%m-%d %H:%i:%s'), '-') AS UPDATE_DTM
+		  FROM AUTO_CALL_CONDITION A
+		  JOIN (SELECT @rownum := 0) as R
+		 WHERE CAMPAIGN_ID = #{campaignId}
+		   AND USE_YN = 'Y'
+		 ORDER BY RNUM
+		 <if test="rowNum != null and rowNum != ''">
+		 	LIMIT #{rowNum, jdbcType=INTEGER}
+		</if>
+		<if test="offset != null and offset != ''">
+		 	OFFSET #{offset, jdbcType=INTEGER}
+		</if>
+	</select>
+
+	<select id="callReservationListCount" parameterType="int" resultType="int">
+		SELECT COUNT(*) AS totalCnt
+	  	  FROM (
+			     SELECT @rownum := @rownum+1 AS RNUM
+			   	  , A.ID
+				  , A.START_DTM
+			   	  , A.END_DTM
+			   	  , A.DISPATCH_TIME
+			   	  , A.OB_CALL_STATUS
+			   	  , A.CALL_TRY_ACCOUNT
+			   	  , A.CREATE_DTM
+			   	  , A.CREATOR
+			   	  , A.CAMPAIGN_ID
+			   	  , A.PROGRESS_STATUS
+			   	  , A.ACTIVE_STATUS
+			   	  , A.USE_YN
+			   	  , A.WEEK_DAY
+			   	  , A.CD_DESC
+			   	  , A.CD_NAME
+				  FROM AUTO_CALL_CONDITION A
+				  JOIN (SELECT @rownum := 0) AS R
+				 WHERE campaign_id = #{campaignId}
+				   AND USE_YN = 'Y'
+		       ) T
+	</select>
+
+	<select id="getObReservationDetail" parameterType="int" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT
+		       IFNULL(DATE_FORMAT(A.START_DTM, '%Y-%m-%d'), '-') AS START_DTM
+			 , IFNULL(DATE_FORMAT(A.END_DTM, '%Y-%m-%d'), '-') AS END_DTM
+			 , IFNULL(DATE_FORMAT(A.DISPATCH_TIME, '%H:%i:%s'), '-') AS DISPATCH_TIME
+		   	 , A.OB_CALL_STATUS
+		   	 , A.CALL_TRY_ACCOUNT
+		   	 , IFNULL(DATE_FORMAT(A.CREATE_DTM, '%Y-%m-%d %H:%i:%s'), '-') AS CREATE_DTM
+		   	 , A.CREATOR
+		   	 , A.CAMPAIGN_ID
+		   	 , A.PROGRESS_STATUS
+		   	 , A.ACTIVE_STATUS
+		   	 , A.USE_YN
+		   	 , A.WEEK_DAY
+		   	 , IFNULL(A.CD_DESC, '-') AS CD_DESC
+		   	 , IFNULL(A.CD_NAME, '-') AS CD_NAME
+		  FROM AUTO_CALL_CONDITION  A
+		 WHERE ID = #{autoCallConditionId}
+	</select>
+
+	<select id="getObReservationCustData" parameterType="int" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT *
+		  FROM CUST_DATA_CLASS A
+		  LEFT JOIN COLUMN_DATA_TYPE B
+		    ON A.DATA_TYPE = B.ID
+		 WHERE A.USE_YN = 'Y'
+		   AND A.OB_CALL_STATUS = 'Y'
+<!-- 		   AND A.DISPLAY_YN = 'Y' -->
+		   AND A.CAMPAIGN_ID = #{campaignId}
+	</select>
+
+	<select id="checkObReservationValue" parameterType="int" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT *
+		  FROM CUST_DATA_CLASS A
+	 LEFT JOIN AUTO_CALL_CONDITION_CUSTOM C
+	        ON A.CUST_DATA_CLASS_ID = C.CUST_DATA_CLASS_ID
+		 WHERE A.USE_YN = 'Y'
+		   AND A.OB_CALL_STATUS = 'Y'
+<!-- 		      AND A.DISPLAY_YN = 'Y' -->
+		   AND A.CAMPAIGN_ID = #{campaignId}
+		   AND C.AUTO_CALL_CONDITION_ID = #{autoCallConditionId}
+		   AND C.USE_YN = 'Y'
+	</select>
+
+	<insert id="insertReservationDate" parameterType="map">
+		INSERT INTO AUTO_CALL_CONDITION
+				  (
+				    START_DTM
+				  , END_DTM
+				  , DISPATCH_TIME
+				  , OB_CALL_STATUS
+				  , CALL_TRY_ACCOUNT
+				  , CREATE_DTM
+				  , CREATOR
+				  , CAMPAIGN_ID
+				  , PROGRESS_STATUS
+				  , ACTIVE_STATUS
+				  , USE_YN
+				  , WEEK_DAY
+				  , CD_DESC
+				  , CD_NAME
+			      )
+	       VALUES (
+				    #{startDtm}
+				  , #{endDtm}
+				  , #{dispatchTime}
+				  , #{obCallStatus}
+				  , #{callTryAccount}
+				  , DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
+				  , #{creator}
+				  , #{campaignId}
+				  , #{progressStatus}
+				  , '1'
+				  , 'Y'
+				  , #{weekDay}
+				  , #{cdDesc}
+				  , #{cdName}
+				  )
+	</insert>
+
+	<insert id="insertReservationCust" parameterType="map">
+		<selectKey keyProperty="autoCallConditionId" resultType="integer" order="BEFORE">
+	    	SELECT MAX(ID) FROM AUTO_CALL_CONDITION
+	  	</selectKey>
+		INSERT INTO AUTO_CALL_CONDITION_CUSTOM
+	              (
+	                CUST_DATA_CLASS_ID
+	              , AUTO_CALL_CONDITION_ID
+	              , DATA_VALUE
+	              , USE_YN
+	              )
+	       VALUES (
+	       		    #{custDataId}
+	       		  , #{autoCallConditionId}
+	       		  , #{dataValue}
+	       		  , 'Y'
+	       		  )
+	</insert>
+
+	<update id="updateReservationDate" parameterType="map">
+		UPDATE AUTO_CALL_CONDITION
+   		   SET START_DTM = #{startDtm}
+     		 , END_DTM = #{endDtm}
+     		 , DISPATCH_TIME = #{dispatchTime}
+     		 , OB_CALL_STATUS = #{obCallStatus}
+     		 , CALL_TRY_ACCOUNT = #{callTryAccount}
+     		 , PROGRESS_STATUS = #{progressStatus}
+     		 , WEEK_DAY = #{weekDay}
+     		 , CD_DESC = #{cdDesc}
+     		 , CD_NAME = #{cdName}
+     		 , UPDATER = #{updater}
+     		 , UPDATE_DTM = DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
+ 		 WHERE ID = #{id}
+   		   AND CAMPAIGN_ID = #{campaignId}
+	</update>
+
+	<update id="updateReservationCustUse" parameterType="String">
+		UPDATE AUTO_CALL_CONDITION_CUSTOM
+		   SET USE_YN = 'N'
+		 WHERE AUTO_CALL_CONDITION_ID = #{id}
+	</update>
+
+	<insert id="updateReservationCust" parameterType="map">
+		INSERT INTO AUTO_CALL_CONDITION_CUSTOM
+	              (
+	                CUST_DATA_CLASS_ID
+	              , AUTO_CALL_CONDITION_ID
+	              , DATA_VALUE
+	              , USE_YN
+	              )
+	       VALUES (
+	       		    #{custDataId}
+	       		  , #{id}
+	       		  , #{dataValue}
+	       		  , 'Y'
+	       		  )
+	</insert>
+
+<!-- 	<delete id="deleteConditionCustom" parameterType="String"> -->
+<!-- 		DELETE FROM AUTO_CALL_CONDITION_CUSTOM WHERE auto_call_condition_id = #{id} -->
+<!-- 	</delete> -->
+
+	<update id="deleteReservation" parameterType="map">
+		UPDATE AUTO_CALL_CONDITION
+		   SET USE_YN = 'N'
+		 WHERE ID = #{id}
+	</update>
+
+	<select id="getCallReservationRecordList" parameterType="int" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT @rownum := @rownum+1 AS RNUM
+		     , T.ID
+			 , IFNULL(T.CD_NAME, '-') AS cdName
+			 , IFNULL(T.CD_DESC, '-') AS cdDesc
+			 , T.START_DTM AS startDtm
+			 , T.END_DTM AS endDtm
+			 , T.WEEK_DAY AS weekDay
+			 , IFNULL(DATE_FORMAT(T.DISPATCH_TIME, '%H:%i:%s'), '-') AS dispatchTime
+			 , IFNULL(DATE_FORMAT(T.CALL_TIME, '%Y-%m-%d %H:%i:%s'), '-') AS callTime
+			 , T.AUTO_CALL_CD_CUSTOM_IDS AS autoCallCdCustomIds
+			 , T.CREATE_DTM
+			 , T.CAMPAIGN_ID AS campaignId
+			 , IFNULL(T.successCnt, 0) AS successCnt
+		 	 , IFNULL(T.failCnt, 0) AS failCnt
+		 	 , IFNULL((successCnt + failCnt), 0) AS ingCall
+		 	 , IFNULL(T.totalCall, 0) AS totalCall
+ 		  FROM (
+				 SELECT A.ID
+	  				  , A.CD_NAME
+					  , A.CD_DESC
+					  , A.START_DTM
+					  , A.END_DTM
+					  , A.WEEK_DAY
+					  , A.DISPATCH_TIME
+					  , A.CALL_TIME
+					  , A.AUTO_CALL_CD_CUSTOM_IDS
+					  , A.CREATE_DTM
+					  , B.campaign_id
+					  , IFNULL(SUM(IF((D.DIAL_RESULT = '200' OR D.DIAL_RESULT IS NULL AND D.CALL_ID IS NOT NULL ), 1, 0)),0) AS successCnt
+	 				  , IFNULL(SUM(IF((D.DIAL_RESULT != '200' AND D.DIAL_RESULT IS NOT NULL AND D.CALL_ID IS NOT NULL), 1, 0)),0) AS failCnt
+	 				  , COUNT(*) AS totalCall
+  				   FROM AUTO_CALL_CD_HISTORY A
+  				   LEFT OUTER JOIN AUTO_CALL_HISTORY B
+    				 ON A.ID = B.CD_HISTORY_ID
+  				   LEFT OUTER JOIN CM_CONTRACT C
+    				 ON B.contract_no = C.CONTRACT_NO
+  				   LEFT OUTER JOIN CALL_HISTORY D
+    				 ON C.CONTRACT_NO = D.CONTRACT_NO
+    			   JOIN (SELECT @rownum := 0) AS R
+ 				  WHERE B.campaign_id = #{campaignId}
+ 				    AND C.IS_INBOUND = 'N'
+ 				  <if test="cdName != null and cdName != ''">
+ 				    AND A.CD_NAME LIKE CONCAT('%', #{cdName} ,'%')
+ 				  </if>
+ 				  <if test="toDate != null and toDate != '' ">
+				  	AND DATE_FORMAT(A.CALL_TIME, '%Y-%m-%d %H:%i:%s') <![CDATA[ <= ]]> #{toDate}
+				  </if>
+				  <if test="fromDate != null and fromDate != '' ">
+				  	AND DATE_FORMAT(A.CALL_TIME, '%Y-%m-%d %H:%i:%s') <![CDATA[ >= ]]> #{fromDate}
+				  </if>
+				  GROUP BY A.ID, A.CD_NAME, A.CREATE_DTM, A.CD_DESC, A.START_DTM, A.END_DTM, A.WEEK_DAY, A.DISPATCH_TIME, A.CALL_TIME, A.AUTO_CALL_CD_CUSTOM_IDS , B.CD_HISTORY_ID, B.campaign_id
+				) T
+				where 1=1
+				<if test="callStatus == 'ing'">
+				  AND (successCnt+failCnt) <![CDATA[ < ]]> totalCall
+				</if>
+				<if test="callStatus == 'end'">
+				  AND (successCnt+failCnt) = totalCall
+				</if>
+		  ORDER BY RNUM
+		 <if test="rowNum != null and rowNum != ''">
+		 	LIMIT #{rowNum, jdbcType=INTEGER}
+		 </if>
+		 <if test="offset != null and offset != ''">
+		 	OFFSET #{offset, jdbcType=INTEGER}
+		 </if>
+	</select>
+
+	<select id="callReservationRecordListCount" parameterType="int" resultType="int">
+		SELECT COUNT(*) as totalCnt
+ 		  FROM (
+				 SELECT A.ID
+	  				  , A.CD_NAME
+					  , A.CD_DESC
+					  , A.START_DTM
+					  , A.END_DTM
+					  , A.WEEK_DAY
+					  , A.DISPATCH_TIME
+					  , A.CALL_TIME
+					  , A.AUTO_CALL_CD_CUSTOM_IDS
+					  , A.CREATE_DTM
+					  , B.campaign_id
+					  , IFNULL(SUM(IF((D.DIAL_RESULT = '200' OR D.DIAL_RESULT IS NULL AND D.CALL_ID IS NOT NULL ), 1, 0)),0) AS successCnt
+	 				  , IFNULL(SUM(IF((D.DIAL_RESULT != '200' AND D.DIAL_RESULT IS NOT NULL AND D.CALL_ID IS NOT NULL), 1, 0)),0) AS failCnt
+	 				  , COUNT(*) AS totalCall
+  				   FROM AUTO_CALL_CD_HISTORY A
+  				   LEFT OUTER JOIN AUTO_CALL_HISTORY B
+    				 ON A.ID = B.CD_HISTORY_ID
+  				   LEFT OUTER JOIN CM_CONTRACT C
+    				 ON B.contract_no = C.CONTRACT_NO
+  				   LEFT OUTER JOIN CALL_HISTORY D
+    				 ON C.CONTRACT_NO = D.CONTRACT_NO
+ 				  WHERE B.campaign_id = #{campaignId}
+ 				    AND C.IS_INBOUND = 'N'
+ 				  <if test="cdName != null and cdName != ''">
+ 				    AND A.CD_NAME LIKE CONCAT('%', #{cdName} ,'%')
+ 				  </if>
+ 				  <if test="toDate != null and toDate != '' ">
+				  	AND DATE_FORMAT(A.CALL_TIME, '%Y-%m-%d %H:%i:%s') <![CDATA[ <= ]]> #{toDate}
+				  </if>
+				  <if test="fromDate != null and fromDate != '' ">
+				  	AND DATE_FORMAT(A.CALL_TIME, '%Y-%m-%d %H:%i:%s') <![CDATA[ >= ]]> #{fromDate}
+				  </if>
+				  GROUP BY A.ID, A.CD_NAME, A.CREATE_DTM, A.CD_DESC, A.START_DTM, A.END_DTM, A.WEEK_DAY, A.DISPATCH_TIME, A.CALL_TIME, A.AUTO_CALL_CD_CUSTOM_IDS , B.campaign_id
+				) T
+				WHERE 1=1
+				<if test="callStatus == 'ing'">
+				  AND (successCnt+failCnt) <![CDATA[ < ]]> totalCall
+				</if>
+				<if test="callStatus == 'end'">
+				  AND (successCnt+failCnt) = totalCall
+				</if>
+	</select>
+
+	<select id="getStatusReservationInfo" parameterType="int" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT * FROM AUTO_CALL_CD_HISTORY WHERE id = #{id}
+	</select>
+
+	<select id="getReservationStatsCust" parameterType="map" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT @rownum := @rownum+1 AS RNUM
+	 		 , A.id
+	 		 , A.CD_HISTORY_ID
+	 		 , A.contract_no
+	 		 , A.campaign_id
+	 		 , B.CUST_ID
+      		 , C.CUST_NM
+      		 , C.CUST_TEL_NO
+      		 , IFNULL(DATE_FORMAT(D.CALL_DATE, '%Y-%m-%d %H:%i:%s'), '-') AS callDate
+      		 , IFNULL(DATE_FORMAT(SEC_TO_TIME(D.DURATION), '%H:%i:%s'), '-') AS duration
+      		 , IF(D.CALL_ID IS NULL ,'0', IF(D.END_TIME IS NOT NULL , '1', IF(D.END_TIME IS NULL,'2','-'))) AS callPlan
+      		 , IF(D.CALL_ID IS NULL ,'-', IF((D.DIAL_RESULT ='200' OR D.DIAL_RESULT IS NULL AND D.CALL_ID IS NOT NULL), '1', IF((D.DIAL_RESULT !='200' AND D.DIAL_RESULT IS NOT NULL AND D.CALL_ID IS NOT NULL),'0','-'))) AS callStats
+      		 , IFNULL(D.CALL_MEMO, '-') as callMemo
+      		 , IF(D.SCENARIO_RESULT = 'Y','Y',IF(D.SCENARIO_RESULT = 'N','N','')) as scenarioResult
+  		  FROM AUTO_CALL_HISTORY A
+ 		  LEFT OUTER JOIN CM_CONTRACT B
+ 			ON A.contract_no = B.CONTRACT_NO
+ 		  LEFT OUTER JOIN CUST_INFO C
+ 			ON B.CUST_ID = C.CUST_ID
+ 		  LEFT OUTER JOIN CALL_HISTORY D
+ 			ON B.CONTRACT_NO = D.CONTRACT_NO
+    	  JOIN (SELECT @rownum := 0) AS R
+ 		 WHERE A.CD_HISTORY_ID = #{cdHistoryId}
+ 		   AND A.CAMPAIGN_ID = #{campaignId}
+ 		   AND B.IS_INBOUND = 'N'
+ 		 ORDER BY RNUM
+ 		 <if test="rowNum != null and rowNum != ''">
+		 	LIMIT #{rowNum, jdbcType=INTEGER}
+		 </if>
+		 <if test="offset != null and offset != ''">
+		 	OFFSET #{offset, jdbcType=INTEGER}
+		 </if>
+	</select>
+
+	<select id="getReservationStatsCustCount" parameterType="map" resultType="int">
+		SELECT COUNT(*) as totalCnt
+ 		  FROM (
+		 		 SELECT @rownum := @rownum+1 AS RNUM
+			 		  , A.id
+			 		  , A.CD_HISTORY_ID
+			 		  , A.contract_no
+			 		  , A.campaign_id
+			 		  , B.CUST_ID
+		      		  , C.CUST_NM
+		      		  , C.CUST_TEL_NO
+		      		  , IFNULL(DATE_FORMAT(D.CALL_DATE, '%Y-%m-%d %H:%i:%s'), '-') AS callDate
+		      		  , IFNULL(DATE_FORMAT(SEC_TO_TIME(D.DURATION), '%H:%i:%s'), '-') AS duration
+		      		  , IF(D.CALL_ID IS NULL ,'0', IF(D.END_TIME IS NOT NULL , '1', IF(D.END_TIME IS NULL,'2','-'))) AS callPlan
+      		 		  , IF(D.CALL_ID IS NULL ,'-', IF((D.DIAL_RESULT ='200' OR D.DIAL_RESULT IS NULL AND D.CALL_ID IS NOT NULL), '1', IF((D.DIAL_RESULT !='200' AND D.DIAL_RESULT IS NOT NULL AND D.CALL_ID IS NOT NULL),'0','-'))) AS callStats
+		      		  , IFNULL(D.CALL_MEMO, '-') as callMemo
+		      		  , IF(D.SCENARIO_RESULT = 'Y','Y',IF(D.SCENARIO_RESULT = 'N','N','')) as scenarioResult
+		  		   FROM AUTO_CALL_HISTORY A
+		 		   LEFT OUTER JOIN CM_CONTRACT B
+		 			 ON A.contract_no = B.CONTRACT_NO
+		 		   LEFT OUTER JOIN CUST_INFO C
+		 			 ON B.CUST_ID = C.CUST_ID
+		 		   LEFT OUTER JOIN CALL_HISTORY D
+		 			 ON B.CONTRACT_NO = D.CONTRACT_NO
+    			   JOIN (SELECT @rownum := 0) AS R
+		 		  WHERE A.CD_HISTORY_ID = #{cdHistoryId}
+		 		    AND A.CAMPAIGN_ID = #{campaignId}
+		 		    AND B.IS_INBOUND = 'N'
+				) T
+	</select>
+
+	<select id="getCustDataValue" parameterType="java.util.ArrayList" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallReservationVO">
+		SELECT A.CUST_DATA_CLASS_ID
+			 , GROUP_CONCAT(A.DATA_VALUE SEPARATOR ',') as dataValue
+		 	 , B.CAMPAIGN_ID
+		 	 , B.DISPLAY_YN
+		 	 , B.OB_CALL_STATUS
+		 	 , B.DATA_TYPE
+		 	 , B.COLUMN_KOR
+		 	 , B.COLUMN_ENG
+		 	 , B.CASE_TYPE
+		 	 , B.DESCRIPTION
+		 	 , B.USE_YN
+	 	  FROM AUTO_CALL_CONDITION_CUSTOM A
+	 	  LEFT OUTER JOIN CUST_DATA_CLASS B
+			ON A.CUST_DATA_CLASS_ID = B.CUST_DATA_CLASS_ID
+		 WHERE A.ID IN
+		 <foreach collection="autoCallConditionCustomIds" item="customIds" index="index" open="(" close=")" separator=",">
+	           #{customIds}
+	     </foreach>
+	     GROUP BY A.CUST_DATA_CLASS_ID
+	</select>
+</mapper>

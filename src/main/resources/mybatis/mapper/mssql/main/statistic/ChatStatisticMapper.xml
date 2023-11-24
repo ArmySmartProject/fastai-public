@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ai.maum.biz.fastaicc.main.statistic.chatMapper.ChatStatisticMapper">
+
+	<select id="getTotalMessages" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+<!-- 		SELECT COUNT(*) as totalCnt -->
+<!--   		  FROM ChatbotLog.dbo.IntentLog  -->
+<!--          WHERE SESSION IS NOT NULL  -->
+<!--    		   AND intent != '처음으로' -->
+<!--    		   AND intent != '선톡' -->
+<!--    		   AND intent != '챗봇공지사항' -->
+<!--    		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createDate, 120) -->
+<!-- 		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createDate, 120) -->
+<!-- 		   AND HOST = #{host} -->
+<!-- 		   <if test="lang != '100'"> -->
+<!--            AND lang = #{lang} -->
+<!--            </if> -->
+<!-- 		SELECT CHOOSE (#{lang}, ISNULL(SUM(lang1Cnt), 0), ISNULL(SUM(lang2Cnt), 0), ISNULL(SUM(lang3Cnt), 0), ISNULL(SUM(lang4Cnt), 0)) as totalCnt -->
+		SELECT <choose>
+				<when test="lang == 1">
+					ISNULL(SUM(lang1Cnt), 0)
+				</when>
+				<when test="lang == 2">
+					ISNULL(SUM(lang2Cnt), 0)
+				</when>
+				<when test="lang == 3">
+					ISNULL(SUM(lang3Cnt), 0)
+				</when>
+				<when test="lang == 4">
+					ISNULL(SUM(lang4Cnt), 0)
+				</when>
+				<when test="lang == 100">
+					(ISNULL(SUM(lang1Cnt), 0) + ISNULL(SUM(lang2Cnt), 0) + ISNULL(SUM(lang3Cnt), 0) + ISNULL(SUM(lang4Cnt), 0))
+				</when>
+			</choose> as totalCnt
+		  FROM ChatbotLog.dbo.SessionLog 
+		 WHERE 1=1
+		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createdAt, 120) 
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createdAt, 120) 
+		   AND HOST = #{host}
+	</select>
+	
+	<select id="getTotalUsers" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+<!-- 		SELECT count(DISTINCT SESSION) AS totalCnt -->
+<!--   		  FROM ChatbotLog.dbo.IntentLog -->
+<!--  		 WHERE SESSION IS NOT NULL  -->
+<!--  		   AND CHANNEL IS NOT NULL -->
+<!--            AND intent != '처음으로' -->
+<!--            AND intent != '선톡' -->
+<!--            AND intent != '챗봇공지사항' -->
+<!--    		   AND HOST = #{host} -->
+<!--            AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createDate, 120) -->
+<!-- 	       AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createDate, 120) -->
+<!-- 	       <if test="lang != '100'"> -->
+<!--            AND lang=#{lang} -->
+<!--            </if> -->
+		 SELECT COUNT(*) AS totalCnt 
+		   FROM ChatbotLog.dbo.SessionLog 
+		  WHERE 1=1
+		    AND HOST = #{host} 
+			AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createdAt, 120) 
+			AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+			<choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getTodayUsers" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT count(DISTINCT SESSION) AS totalCnt
+  		  FROM ChatbotLog.dbo.SessionLog
+ 		 WHERE 1=1 
+   		   AND HOST = #{host}
+	       AND #{endDate} = CONVERT(NVARCHAR(10), createdAt, 120)
+	       <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getWeakProb" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		 SELECT COUNT(*) AS totalCnt
+  		   FROM ChatbotLog.dbo.IntentLog
+  		  WHERE HOST=#{host}
+    		AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createDate, 120)
+	 		AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createDate, 120) 
+	 		AND (prob <![CDATA[ <= ]]>  0.4 OR intent = 'Unknown2')
+	 		<if test="lang != '100'">
+          	AND lang=#{lang}
+           	</if>
+	</select>
+	
+	<select id="getWeakProbUtter" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		 SELECT utter AS weakUtter
+  		   FROM ChatbotLog.dbo.IntentLog
+  		  WHERE HOST=#{host}
+    		AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createDate, 120)
+	 		AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createDate, 120) 
+	 		AND (prob <![CDATA[ <= ]]>  0.4 OR intent = 'Unknown2')
+	 		<if test="lang != '100'">
+          	AND lang=#{lang}
+           	</if>
+	</select>
+	
+	<select id="getTotalEmail" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+<!-- 		SELECT COUNT(*) AS totalCnt -->
+<!--   		  FROM ChatbotLog.dbo.IntentLog  -->
+<!--  		 WHERE HOST = #{host}  -->
+<!--  		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createDate, 120) -->
+<!-- 		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createDate, 120)  -->
+<!--    		   AND CHANNEL LIKE CONCAT('%', '"sendResult":true' , '%') -->
+<!--    		   <if test="lang != '100'"> -->
+<!--            AND lang = #{lang} -->
+<!--            </if> -->
+		SELECT COUNT(*) AS totalCnt
+  		  FROM ChatbotLog.dbo.SessionLog 
+ 		 WHERE HOST = #{host} 
+ 		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createdAt, 120) 
+   		   AND CHANNEL LIKE CONCAT('%', '"sendResult":true' , '%')
+   		   <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getMostIntents" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT TOP 10 COUNT(A.id) AS COUNT
+     		 , A.intent AS content
+  		  FROM ChatbotLog.dbo.IntentLog A
+<!--   		  LEFT OUTER JOIN ChatbotLog.dbo.SessionLog B -->
+<!--   		    ON A.sessionId = B.id -->
+ 		 WHERE A.HOST = #{host}
+   		   AND A.intent != '처음으로'
+   		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), A.createDate, 120)
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), A.createDate, 120) 
+   		   <if test="lang != '100'">
+           AND A.lang=#{lang}
+           </if>
+		 GROUP BY A.intent
+		 ORDER BY COUNT(A.id) DESC 
+	</select>
+	
+	<select id="getMostIntentsAll" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT COUNT(A.id) AS COUNT 
+             , A.intent AS content
+  		  FROM ChatbotLog.dbo.IntentLog A
+<!--   		  LEFT OUTER JOIN ChatbotLog.dbo.SessionLog B -->
+<!--   		    ON A.sessionId = B.id -->
+		 WHERE A.HOST=#{host}
+   		   AND A.intent != '처음으로'
+  		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), A.createDate, 120)
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), A.createDate, 120) 
+ 		   <if test="lang != '100'">
+           AND A.lang=#{lang}
+           </if>
+ 		 GROUP BY A.intent
+ 		 ORDER BY COUNT(A.id) DESC
+	</select>
+	
+	<select id="getUttersFromIntent" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT COUNT(A.id) AS COUNT
+		     , A.utter AS content
+		  FROM ChatbotLog.dbo.IntentLog A
+<!-- 		  LEFT OUTER JOIN ChatbotLog.dbo.SessionLog B -->
+<!-- 		    ON A.sessionId = B.id -->
+		 WHERE A.intent = #{intent}
+		   AND A.HOST = #{host}
+		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), A.createDate, 120)
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), A.createDate, 120)
+		   <if test="lang != '100'">
+           AND A.lang=#{lang}
+           </if> 
+		 GROUP BY A.utter
+		 ORDER BY COUNT DESC
+	</select>
+	
+	<select id="getAllUttersFromIntent" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT T.utter
+			 , T.intent
+			 , T.utterCnt AS utterCnt
+	         , T.intentCnt
+	         , COUNT(1) OVER(partition BY intent)  AS mergeCnt
+		  FROM (
+				 SELECT utter
+    	  			  , intent
+    	  			  , COUNT(1) AS utterCnt
+				      , SUM(COUNT(1)) OVER(partition BY intent)  AS intentCnt
+	  			   FROM ChatbotLog.dbo.IntentLog
+			      WHERE 1=1
+	   				AND host = #{host}
+	   				AND intent != '처음으로'
+	   				<if test="lang != '100'">
+           			AND lang = #{lang}
+           			</if>
+	   				AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createDate, 120)
+		   			AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createDate, 120)
+			   GROUP BY intent,utter
+			   ) T
+	  ORDER BY T.intentCnt DESC ,T.intent DESC  ,T.utter ASC
+	</select>
+	
+	
+	
+	
+	<select id="getTotalMsgPerHour" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+<!-- 			SELECT DATEPART(HOUR, createDate) as hour -->
+<!-- 				 , COUNT(createDate) as count -->
+<!--         	  FROM ChatBotLog.dbo.IntentLog -->
+<!--              WHERE DATEPART(HOUR, createDate) is not null -->
+<!--                AND CONVERT(NVARCHAR(10), createDate, 120) <![CDATA[ >= ]]> #{startDate} -->
+<!--                AND CONVERT(NVARCHAR(10), createDate, 120) <![CDATA[ <= ]]> #{endDate} -->
+<!--                AND HOST=#{host}  -->
+<!--         	   <if test='lang != "100"'> -->
+<!--                AND lang=#{lang} -->
+<!--         	   </if> -->
+<!--           GROUP BY DATEPART(HOUR, createDate) -->
+<!--           ORDER BY hour -->
+			SELECT DATEPART(HOUR, createdAt) as hour
+				 , <choose>
+					   <when test="lang == 1">
+					   	   ISNULL(SUM(lang1Cnt), 0)
+					   </when>
+					   <when test="lang == 2">
+					   	   ISNULL(SUM(lang2Cnt), 0)
+					   </when>
+					   <when test="lang == 3">
+					   	   ISNULL(SUM(lang3Cnt), 0)
+					   </when>
+					   <when test="lang == 4">
+					   	   ISNULL(SUM(lang4Cnt), 0)
+					   </when>
+					   <when test="lang == 100">
+					   	   (ISNULL(SUM(lang1Cnt), 0) + ISNULL(SUM(lang2Cnt), 0) + ISNULL(SUM(lang3Cnt), 0) + ISNULL(SUM(lang4Cnt), 0))
+					   </when>
+			       </choose> as count
+        	  FROM ChatBotLog.dbo.SessionLog
+             WHERE DATEPART(HOUR, createdAt) is not null
+               AND CONVERT(NVARCHAR(10), createdAt, 120) <![CDATA[ >= ]]> #{startDate}
+               AND CONVERT(NVARCHAR(10), createdAt, 120) <![CDATA[ <= ]]> #{endDate}
+               AND HOST=#{host} 
+        	   <choose>
+				   <when test="lang == 1">
+					   AND lang1Cnt IS NOT NULL
+					   AND lang1Cnt != 0
+				   </when>
+				   <when test="lang == 2">
+					   AND lang2Cnt IS NOT NULL
+					   AND lang2Cnt != 0
+				   </when>
+				   <when test="lang == 3">
+				   	AND lang3Cnt IS NOT NULL
+				   	AND lang3Cnt != 0
+				   </when>
+				   <when test="lang == 4">
+					   AND lang4Cnt IS NOT NULL
+					   AND lang4Cnt != 0
+				   </when>
+			   </choose>
+          GROUP BY DATEPART(HOUR, createdAt)
+          ORDER BY hour
+	</select>
+	
+	<select id="getTotalUserPerHour" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+<!-- 			SELECT DATEPART(HOUR , createDate) as hour -->
+<!-- 				 , COUNT(createDate) as count  -->
+<!-- 			  FROM (SELECT session -->
+<!-- 				  	     , MIN(createDate) as createDate -->
+<!--                       FROM ChatBotLog.dbo.IntentLog -->
+<!--                      WHERE CONVERT(NVARCHAR(10), createDate, 120) <![CDATA[ >= ]]> #{startDate} -->
+<!--                        AND CONVERT(NVARCHAR(10), createDate, 120) <![CDATA[ <= ]]> #{endDate} -->
+<!--                 	   AND HOST= #{host} -->
+<!--                 	   AND intent != '처음으로' -->
+<!--                 	   AND intent != '선톡' -->
+<!--                 	   AND intent != '챗봇공지사항' -->
+<!--                 	    <if test="lang != '100'"> -->
+<!--                		   AND lang=#{lang} -->
+<!--                		   </if> -->
+<!-- 	            	GROUP BY session) a -->
+<!--               WHERE DATEPART(HOUR, createDate) IS NOT NULL -->
+<!--         	  GROUP BY DATEPART(HOUR, createDate) ORDER BY HOUR -->
+			SELECT DATEPART(HOUR, createdAt) as hour
+				 , COUNT(createdAt) as count
+        	  FROM ChatBotLog.dbo.SessionLog
+             WHERE DATEPART(HOUR, createdAt) is not null
+               AND CONVERT(NVARCHAR(10), createdAt, 120) <![CDATA[ >= ]]> #{startDate}
+               AND CONVERT(NVARCHAR(10), createdAt, 120) <![CDATA[ <= ]]> #{endDate}
+               AND HOST=#{host} 
+        	   <choose>
+				   <when test="lang == 1">
+				   	   AND lang1Cnt IS NOT NULL
+				   	   AND lang1Cnt != 0
+				   </when>
+				   <when test="lang == 2">
+				   	   AND lang2Cnt IS NOT NULL
+				   	   AND lang2Cnt != 0
+				   </when>
+				   <when test="lang == 3">
+				   	   AND lang3Cnt IS NOT NULL
+				   	   AND lang3Cnt != 0
+				   </when>
+				   <when test="lang == 4">
+				   	   AND lang4Cnt IS NOT NULL
+				   	   AND lang4Cnt != 0
+				   </when>
+			   </choose>
+          GROUP BY DATEPART(HOUR, createdAt)
+          ORDER BY hour
+	</select>
+	
+	<select id="getTotalUserMaxAvgPerHour" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT ISNULL(MAX(COUNT),0) AS maxCnt
+		     , ISNULL(AVG(COUNT),0) AS avgCnt
+		  FROM (
+		SELECT DATEPART(HOUR , createDate) as hour
+				 , COUNT(createDate) as count 
+			  FROM (SELECT session
+				  	     , MIN(createdAt) as createDate
+                      FROM ChatBotLog.dbo.SessionLog
+                     WHERE CONVERT(NVARCHAR(10), createdAt, 120) <![CDATA[ >= ]]> #{startDate}
+                       AND CONVERT(NVARCHAR(10), createdAt, 120) <![CDATA[ <= ]]> #{endDate}
+                	   AND HOST= #{host}
+                	   <choose>
+						   <when test="lang == 1">
+							   AND lang1Cnt IS NOT NULL
+							   AND lang1Cnt != 0
+						   </when>
+						   <when test="lang == 2">
+							   AND lang2Cnt IS NOT NULL
+							   AND lang2Cnt != 0
+						   </when>
+						   <when test="lang == 3">
+							   AND lang3Cnt IS NOT NULL
+							   AND lang3Cnt != 0
+						   </when>
+						   <when test="lang == 4">
+							   AND lang4Cnt IS NOT NULL
+							   AND lang4Cnt != 0
+						   </when>
+					   </choose>
+	            	GROUP BY session) a
+              WHERE DATEPART(HOUR, createDate) IS NOT NULL
+        	  GROUP BY DATEPART(HOUR, createDate) ) T
+	</select>
+	
+	<select id="getDeviceCount" parameterType="map" resultType="map">
+		SELECT count(DISTINCT SESSION) AS totalCnt
+ 		  FROM ChatbotLog.dbo.SessionLog
+ 		 WHERE 1=1
+		   AND HOST = #{host}
+		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+		   AND CHANNEL LIKE CONCAT('%', #{channel} ,'%')
+		   <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getUserCountry" parameterType="map" resultType="map">
+		SELECT DISTINCT SESSION
+     		 , CHANNEL AS content
+  		  FROM ChatbotLog.dbo.SessionLog
+ 		 WHERE 1=1
+		   AND HOST = #{host}
+		   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+		   AND CHANNEL LIKE CONCAT('%','country','%')
+		   <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getObStatsChatList" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+		SELECT /*getObStatsChatList - 채팅상담 이력 리스트*/
+			   <choose>
+			   		<when test="searchTime == 'startTime'">
+			   			<if test="sortOrder == 'asc'">
+						   ROW_NUMBER() OVER (ORDER BY startDate ASC) AS RNUM
+			   			</if>
+			   			<if test="sortOrder == 'desc'">
+						   ROW_NUMBER() OVER (ORDER BY startDate DESC) AS RNUM
+			   			</if>
+						 , ISNULL(CONVERT(NVARCHAR(10), T.startDate, 120), '-') AS daily
+			   		</when>
+			   		<when test="searchTime == 'endTime'">
+			   			<if test="sortOrder == 'asc'">
+						   ROW_NUMBER() OVER (ORDER BY endDate ASC) AS RNUM
+						</if>
+						<if test="sortOrder == 'desc'">
+						   ROW_NUMBER() OVER (ORDER BY endDate DESC) AS RNUM
+						</if>
+						 , ISNULL(CONVERT(NVARCHAR(10), T.endDate, 120), '-') AS daily
+			   		</when>
+			   </choose>
+			 , *
+		  FROM (
+		SELECT DISTINCT TOP 100 PERCENT A.session
+		     , A.Id
+			 , A.host
+			 , A.channel
+			 , ISNULL(CONVERT(NVARCHAR, A.createdAt, 20), '-') AS startDate 
+			 , ISNULL(CONVERT(NVARCHAR, A.updatedAt, 20), '-') AS endDate 
+			 , ISNULL(B.NAME,'-') AS chatbotNm
+			 , (ISNULL(A.botCnt, 0) + ISNULL(A.consultantCnt,0)) AS totalChatCnt
+			 , ISNULL(A.botCnt, 0) AS botChatCnt 
+			 , ISNULL(A.consultantCnt, 0) AS consultantCnt
+			 , ISNULL(A.consultantId, '-') AS consultant
+	      FROM ChatbotLog.dbo.SessionLog A
+		  LEFT OUTER JOIN Chatbot.dbo.Account B
+	 	    ON A.HOST = B.NO
+	 	 WHERE 1=1
+ 	  	   AND A.host IN
+	 	  <foreach collection="botIdArr" item="botIdArr" index="index" open="(" close=")" separator=",">
+	 	  		#{botIdArr}
+	 	  </foreach>
+	      ) AS T
+	      WHERE 1=1
+	      <if test="consultant != null and consultant != ''">
+    		AND T.consultant LIKE CONCAT('%', #{consultant} , '%')
+    	  </if>
+    	  <if test="totalChatCnt != null and totalChatCnt != ''">
+    		AND T.totalChatCnt = #{totalChatCnt}
+    	  </if>
+	      <choose>
+	      	<when test="searchTime == 'startTime'">
+	      		<if test="fromDate != null and fromDate != '' ">
+	       		  AND CONVERT(NVARCHAR(10), T.startDate, 20) <![CDATA[ >= ]]> #{fromDate}
+	      		</if>
+	      		<if test="toDate != null and toDate != '' ">
+	      		  AND CONVERT(NVARCHAR(10), T.startDate, 20) <![CDATA[ <= ]]> #{toDate}
+	      		</if>
+	      		<choose>
+					<when test="dailyChk == 'true'">
+						<choose>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'asc' ">
+								ORDER BY daily ASC, startDate ASC
+							</when>
+							<when test="groupSortOrder == 'desc' and sortOrder == 'asc' ">
+								ORDER BY daily DESC, startDate ASC
+							</when>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'desc' ">
+								ORDER BY daily ASC, startDate DESC
+							</when>
+							<otherwise>
+								ORDER BY daily DESC, startDate DESC
+							</otherwise>
+						</choose>
+					</when>
+					<otherwise>
+						<choose>
+							<when test="sortOrder == 'asc' ">
+								ORDER BY startDate ASC
+							</when>
+							<otherwise>
+								ORDER BY startDate DESC
+							</otherwise>
+						</choose>
+					</otherwise>
+		  		</choose>
+	      	</when>
+	      	<when test="searchTime == 'endTime'">
+	      		<if test="fromDate != null and fromDate != '' ">
+	       		  AND CONVERT(NVARCHAR(10), T.endDate, 20) <![CDATA[ >= ]]> #{fromDate}
+	      		</if>
+	      		<if test="toDate != null and toDate != '' ">
+	      		  AND CONVERT(NVARCHAR(10), T.endDate, 20) <![CDATA[ <= ]]> #{toDate}
+	      		</if>
+	      		<choose>
+					<when test="dailyChk == 'true'">
+						<choose>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'asc' ">
+								ORDER BY daily ASC, endDate ASC
+							</when>
+							<when test="groupSortOrder == 'desc' and sortOrder == 'asc' ">
+								ORDER BY daily DESC, endDate ASC
+							</when>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'desc' ">
+								ORDER BY daily ASC, endDate DESC
+							</when>
+							<otherwise>
+								ORDER BY daily DESC, endDate DESC
+							</otherwise>
+						</choose>
+					</when>
+					<otherwise>
+						<choose>
+							<when test="sortOrder == 'asc' ">
+								ORDER BY endDate ASC
+							</when>
+							<otherwise>
+								ORDER BY endDate DESC
+							</otherwise>
+						</choose>
+					</otherwise>
+		  		</choose>
+	      	</when>
+	      </choose>
+	      <if test="offset != null and rowNum != null and rowNum != 0">
+			OFFSET #{offset, jdbcType=INTEGER} ROWS FETCH NEXT #{rowNum, jdbcType=INTEGER} ROWS ONLY
+		  </if>
+		  
+		  
+	</select>
+
+	<select id="getObStatsChatListCount" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="int">
+		SELECT COUNT(*) AS totalCount
+		  FROM (
+	 			 SELECT DISTINCT TOP 100 PERCENT A.SESSION
+		  			  , ISNULL(B.NAME,'-') AS chatbotNm
+		  			  , (ISNULL(A.botCnt, 0) + ISNULL(A.consultantCnt,0)) AS totalChatCnt
+		  			  , ISNULL(A.consultantId, '-') as consultant
+		  			  , ISNULL(CONVERT(NVARCHAR, A.createdAt, 20), '-') AS startDate 
+				  	  , ISNULL(CONVERT(NVARCHAR, A.updatedAt, 20), '-') AS endDate
+	  			   FROM ChatbotLog.dbo.SessionLog A
+	  	LEFT OUTER JOIN Chatbot.dbo.Account B
+	 	 			 ON A.HOST = B.NO
+	 	 	   WHERE 1=1
+ 	  	   	   AND A.host in
+		 	   <foreach collection="botIdArr" item="botIdArr" index="index" open="(" close=")" separator=",">
+		 	  		#{botIdArr}
+		 	   </foreach>
+	 		   ) T
+	 		   WHERE 1=1
+	      	   <if test="totalChatCnt != null and totalChatCnt != ''">
+	      		 AND T.totalChatCnt = #{totalChatCnt}
+	      	   </if>
+		       <if test="consultant != null and consultant != ''">
+	      		 AND T.consultant LIKE CONCAT('%', #{consultant} , '%')
+	      	   </if>
+	 		   <choose>
+	 		   		<when test="searchTime == 'startTime'">
+	 		   			<if test="fromDate != null and fromDate != '' ">
+			   				AND CONVERT(NVARCHAR(10), T.startDate, 20) <![CDATA[ >= ]]> #{fromDate}
+			   			</if>
+			   			<if test="toDate != null and toDate != '' ">
+			   				AND CONVERT(NVARCHAR(10), T.startDate, 20) <![CDATA[ <= ]]> #{toDate}
+			   			</if>
+	 		   		</when>
+	 		   		<when test="searchTime == 'endTime'">
+	 		   			<if test="fromDate != null and fromDate != '' ">
+			   				AND CONVERT(NVARCHAR(10), T.endDate, 20) <![CDATA[ >= ]]> #{fromDate}
+			   			</if>
+			   			<if test="toDate != null and toDate != '' ">
+			   				AND CONVERT(NVARCHAR(10), T.endDate, 20) <![CDATA[ <= ]]> #{toDate}
+			   			</if>
+	 		   		</when>
+	 		   </choose>
+	</select>
+
+	<select id="getDetailChat" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT ISNULL(B.NAME, '-') AS chatbotNm
+			 , A.answer
+			 , A.utter
+			 , CONVERT(NVARCHAR, A.createDate, 120) AS createDate
+		  FROM ChatbotLog.dbo.IntentLog A
+	LEFT OUTER JOIN Chatbot.dbo.Account B
+	  ON A.host = B.NO
+		 WHERE A.sessionId = #{sessionId}
+		   AND A.host = #{host}
+		 ORDER BY createDate ASC
+	</select>
+	
+	<update id="updateEmailInfo" parameterType="map">
+		UPDATE Chatbot.dbo.Account
+		SET Email=#{email}
+		WHERE No=#{host}
+	</update>
+	
+	<select id="getAccountList" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+		select No as No
+		     , Name as Name 
+		  from Chatbot.dbo.Account
+	</select>
+	
+	<update id="updateChatbotAvailable" parameterType="map">
+		UPDATE Chatbot.dbo.Account
+		   SET Available = #{available}
+	     WHERE No = #{botId}
+	</update>
+	
+	<select id="getLinkCount" parameterType="map" resultType="map">
+	    SELECT T.href
+	         , T.host
+	         , T.lang
+	         , T.linkCnt
+	      FROM (
+		SELECT DISTINCT href
+     		 , host
+     		 , lang
+     		 , COUNT(1) OVER (partition BY href) AS linkCnt
+   		  FROM ChatbotLog.dbo.LinkLog 
+ 		 WHERE 1=1 
+   		   AND host = #{host}
+	  	   AND #{startDate} <![CDATA[ <= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+		   AND #{endDate} <![CDATA[ >= ]]> CONVERT(NVARCHAR(10), createdAt, 120)
+		   AND lang = #{lang}
+		   ) T ORDER BY T.linkCnt DESC;
+	</select>
+	
+</mapper>

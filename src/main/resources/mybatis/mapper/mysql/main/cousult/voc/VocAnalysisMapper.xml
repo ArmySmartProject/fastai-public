@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.voc.mapper.VocAnalysisMapper">
+   <select id="getHmdResult" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.voc.domain.HmdResultVO">
+		SELECT
+	   		CATEGORY1, CATEGORY2, CATEGORY3, COUNT(1) count
+		FROM
+		   (
+		   		SELECT
+		   			T1.*, T2.CREATED_DTM
+		   		FROM
+		   			HMD_RESULT T1,
+		   			CM_STT_RSLT_DETAIL T2,
+                    CALL_HISTORY tb3,
+                    CM_CONTRACT tb4,
+                    CM_CAMPAIGN tb5
+		   		WHERE
+		   			T1.STT_RESULT_DETAIL_ID = T2.STT_RESULT_DETAIL_ID
+                    AND T2.CALL_ID = tb3.CALL_ID
+                    AND tb3.CONTRACT_NO = tb4.CONTRACT_NO
+                    AND tb4.CAMPAIGN_ID = tb5.CAMPAIGN_ID
+                    AND tb5.LANG LIKE #{vocLang}
+                    <if test='(startDate != null and startDate != "") and (endDate != null and endDate != "")'>
+                        <![CDATA[
+                        AND (T2.CREATED_DTM >= #{startDate} AND T2.CREATED_DTM <= #{endDate})
+                        ]]>
+                    </if>
+                    <if test="category1 != null and category1 != ''">
+                        AND CATEGORY1 = #{category1}
+                    </if>
+                    <if test="category2 != null and category2 != ''">
+                        AND CATEGORY2 = #{category2}
+                    </if>
+                    <if test="category3 != null and category3 != ''">
+                        AND CATEGORY3 = #{category3}
+                    </if>
+			) T3
+		GROUP BY CATEGORY1, CATEGORY2, CATEGORY3
+		ORDER BY COUNT DESC
+		limit #{page},#{amount}
+   </select>
+
+    <select id="getHmdResultCnt" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="int">
+        SELECT COUNT(*) CNT
+        FROM (
+            SELECT
+            CATEGORY1, CATEGORY2, CATEGORY3, COUNT(1) count
+            FROM
+            (
+                SELECT
+                    T1.*, T2.CREATED_DTM
+                FROM
+                    HMD_RESULT T1,
+                    CM_STT_RSLT_DETAIL T2,
+                    CALL_HISTORY tb3,
+                    CM_CONTRACT tb4,
+                    CM_CAMPAIGN tb5
+                WHERE
+                    T1.STT_RESULT_DETAIL_ID = T2.STT_RESULT_DETAIL_ID
+                    AND T2.CALL_ID = tb3.CALL_ID
+                    AND tb3.CONTRACT_NO = tb4.CONTRACT_NO
+                    AND tb4.CAMPAIGN_ID = tb5.CAMPAIGN_ID
+                    AND tb5.LANG LIKE #{vocLang}
+                    <if test='(startDate != null and startDate != "") and (endDate != null and endDate != "")'>
+                    <![CDATA[
+                        AND (T2.CREATED_DTM >= #{startDate} AND T2.CREATED_DTM <= #{endDate})
+                    ]]>
+                    </if>
+                    <if test="category1 != null and category1 != ''">
+                        AND CATEGORY1 = #{category1}
+                    </if>
+                    <if test="category2 != null and category2 != ''">
+                        AND CATEGORY2 = #{category2}
+                    </if>
+                    <if test="category3 != null and category3 != ''">
+                        AND CATEGORY3 = #{category3}
+                    </if>
+            ) T3
+            GROUP BY CATEGORY1, CATEGORY2, CATEGORY3
+            ORDER BY COUNT DESC
+        ) tmp
+    </select>
+
+	<select id="getHmdResultDetail" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.voc.domain.HmdResultVO">
+		SELECT
+			tb4.TEL_NO,
+			tb2.CREATED_DTM,
+			tb2.SPEAKER_CODE,
+			tb2.SENTENCE,
+			if(tb2.SPEAKER_CODE = 'ST0001', '고객', '상담원') AS SPEAKER,
+			tb2.CALL_ID
+		FROM
+			HMD_RESULT tb1,
+			CM_STT_RSLT_DETAIL tb2,
+			CALL_HISTORY tb3,
+			CM_CONTRACT tb4,
+            CM_CAMPAIGN tb5
+		WHERE
+		    tb1.STT_RESULT_DETAIL_ID = tb2.STT_RESULT_DETAIL_ID
+		    AND tb2.CALL_ID = tb3.CALL_ID
+		    AND tb3.CONTRACT_NO = tb4.CONTRACT_NO
+            AND tb4.CAMPAIGN_ID = tb5.CAMPAIGN_ID
+            AND tb5.LANG LIKE #{vocLang}
+            <if test="category1 != null and category1 != ''">
+                AND tb1.CATEGORY1 = #{category1}
+            </if>
+            <if test="category2 != null and category2 != ''">
+                AND tb1.CATEGORY2 = #{category2}
+            </if>
+            <if test="category3 != null and category3 != ''">
+                AND tb1.CATEGORY3 = #{category3}
+            </if>
+            <if test='(startDate != null and startDate != "") and (endDate != null and endDate != "")'>
+                <![CDATA[
+                AND (tb2.CREATED_DTM >= #{startDate} AND tb2.CREATED_DTM <= #{endDate})
+                ]]>
+            </if>
+		    ORDER BY tb1.STT_RESULT_DETAIL_ID DESC
+            limit #{page},#{amount}
+	</select>
+
+    <select id="getHmdResultDetailCnt" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="int">
+        SELECT COUNT(*) CNT
+        FROM
+        (
+            SELECT
+            tb1.STT_RESULT_DETAIL_ID,
+            tb4.TEL_NO,
+            tb2.CREATED_DTM,
+            tb2.SPEAKER_CODE,
+            tb2.SENTENCE,
+            if(tb2.SPEAKER_CODE = 'ST0001', '고객', '상담원') AS SPEAKER,
+            tb2.CALL_ID
+            FROM
+            HMD_RESULT tb1,
+            CM_STT_RSLT_DETAIL tb2,
+            CALL_HISTORY tb3,
+            CM_CONTRACT tb4,
+            CM_CAMPAIGN tb5
+            WHERE
+            tb1.STT_RESULT_DETAIL_ID = tb2.STT_RESULT_DETAIL_ID
+            AND tb2.CALL_ID = tb3.CALL_ID
+            AND tb3.CONTRACT_NO = tb4.CONTRACT_NO
+            AND tb4.CAMPAIGN_ID = tb5.CAMPAIGN_ID
+            AND tb5.LANG LIKE #{vocLang}
+            <if test="category1 != null and category1 != ''">
+                AND tb1.CATEGORY1 = #{category1}
+            </if>
+            <if test="category2 != null and category2 != ''">
+                AND tb1.CATEGORY2 = #{category2}
+            </if>
+            <if test="category3 != null and category3 != ''">
+                AND tb1.CATEGORY3 = #{category3}
+            </if>
+            <if test='(startDate != null and startDate != "") and (endDate != null and endDate != "")'>
+                <![CDATA[
+                AND (tb2.CREATED_DTM >= #{startDate} AND tb2.CREATED_DTM <= #{endDate})
+                ]]>
+            </if>
+            ORDER BY tb1.STT_RESULT_DETAIL_ID DESC
+        ) tmp
+    </select>
+
+
+    <select id="getCallNum" resultType="ai.maum.biz.fastaicc.main.cousult.voc.domain.VocNegVO">
+        select a.CNT as total_call, b.CNT as neg_call
+        from
+        (
+            select COUNT(*) CNT, CONTRACT_NO
+            from DETECT_RESULT
+            where
+                seq > 0
+                AND CONTRACT_NO IN (select CONTRACT_NO from CM_CONTRACT WHERE CAMPAIGN_ID IN (select CAMPAIGN_ID from CM_CAMPAIGN WHERE LANG LIKE #{vocLang}))
+                <if test="fromDate != '' and toDate != ''">
+                <![CDATA[
+                    and (consult_time >= #{fromDate} and consult_time <= #{toDate})
+                ]]>
+                </if>
+                <if test="keyword != ''">
+                    and keyword like #{keyword}
+                </if>
+                <if test="speakerCode != ''">
+                    and SPEAKER_CODE like #{speakerCode}
+                </if>
+        ) a,
+        (
+            select COUNT(*) CNT, CONTRACT_NO
+            from DETECT_RESULT
+            where
+                CATEGORY like '불만'
+                AND CONTRACT_NO IN (select CONTRACT_NO from CM_CONTRACT WHERE CAMPAIGN_ID IN (select CAMPAIGN_ID from CM_CAMPAIGN WHERE LANG LIKE #{vocLang}))
+                <if test="fromDate != '' and toDate != ''">
+                <![CDATA[
+                    and (consult_time >= #{fromDate} and consult_time <= #{toDate})
+                ]]>
+                </if>
+                <if test="keyword != ''">
+                    and keyword like #{keyword}
+                </if>
+                <if test="speakerCode != ''">
+                    and SPEAKER_CODE like #{speakerCode}
+                </if>
+        ) b
+    </select>
+
+    <select id="getKeywordCnt" resultType="int">
+        select count(*) CNT
+        from
+        (
+            select a.keyword, b.CNT from
+            (
+                select * from DETECT_DICTIONARY
+            ) a
+            left join
+            (
+                select count(KEYWORD) CNT, keyword
+                from
+                (SELECT *
+                FROM
+                (SELECT * FROM DETECT_RESULT WHERE CONTRACT_NO IN
+                    (select CONTRACT_NO from CM_CONTRACT WHERE CAMPAIGN_ID IN
+                        (select CAMPAIGN_ID from CM_CAMPAIGN WHERE LANG LIKE #{vocLang})
+                    )
+                ) tb1 ) tb2
+                where seq > 0
+
+                <if test="fromDate != '' and toDate != ''">
+                <![CDATA[
+                    and (consult_time >= #{fromDate} and consult_time <= #{toDate})
+                ]]>
+                </if>
+                <if test="keyword != ''">
+                    and keyword like #{keyword}
+                </if>
+                <if test="speakerCode != ''">
+                    and SPEAKER_CODE like #{speakerCode}
+                </if>
+                group by keyword
+            ) b
+        on b.keyword = a.keyword
+        where b.CNT > 0
+        group by a.keyword
+        ORDER BY CNT DESC
+        ) tmp
+    </select>
+
+    <select id="getKeywordList" resultType="ai.maum.biz.fastaicc.main.cousult.voc.domain.VocNegVO">
+        select a.keyword, b.CNT
+        from
+        (
+            select * from DETECT_DICTIONARY
+        ) a
+        left join
+        (
+            select count(KEYWORD) CNT, keyword
+            from
+            (SELECT *
+            FROM
+            (SELECT * FROM DETECT_RESULT WHERE CONTRACT_NO IN
+                (select CONTRACT_NO from CM_CONTRACT WHERE CAMPAIGN_ID IN
+                    (select CAMPAIGN_ID from CM_CAMPAIGN WHERE LANG LIKE #{vocLang})
+                )
+            ) tb1 ) tb2
+            where seq > 0
+
+            <if test="fromDate != '' and toDate != ''">
+                <![CDATA[
+                    and (consult_time >= #{fromDate} and consult_time <= #{toDate})
+                ]]>
+            </if>
+            <if test="keyword != ''">
+                and keyword like #{keyword}
+            </if>
+            <if test="speakerCode != ''">
+                and SPEAKER_CODE like #{speakerCode}
+            </if>
+            group by keyword
+        ) b
+        on b.keyword = a.keyword
+        where CNT > 0
+        group by a.keyword
+        ORDER BY CNT DESC
+        limit #{page}, #{amount}
+    </select>
+
+    <select id="getNegRetCnt" resultType="int">
+        select count(*) CNT
+        from
+        (
+            select
+                a.seq, a.contract_no, a.keyword, a.speaker_code,
+                a.sentence, date_format(a.consult_time,'%Y-%m-%d %H:%i:%s') as consult_time,
+                a.is_inbound, a.tel_no, a.category,
+                b.CUST_ID CUST_ID, b.LAST_CALL_ID as CALL_ID
+            from DETECT_RESULT a
+            left join
+                CM_CONTRACT b
+            on a.contract_no = b.contract_no
+            where
+                a.keyword like #{keyword}
+                AND b.CAMPAIGN_ID IN (select CAMPAIGN_ID from CM_CAMPAIGN WHERE LANG LIKE #{vocLang})
+                <if test="fromDate != '' and toDate != ''">
+                <![CDATA[
+                    and (consult_time >= #{fromDate} and consult_time <= #{toDate})
+                ]]>
+                </if>
+                <if test="speakerCode != ''">
+                    and SPEAKER_CODE like #{speakerCode}
+                </if>
+        ) tmp
+    </select>
+
+    <select id="getNegRetList" resultType="ai.maum.biz.fastaicc.main.cousult.voc.domain.VocNegVO">
+        select
+            a.seq, a.contract_no, a.keyword, a.speaker_code,
+            a.sentence,
+            date_format(a.consult_time,'%Y-%m-%d %H:%i:%s') as consult_time,
+            a.is_inbound, a.tel_no, a.category,
+            b.CUST_ID CUST_ID, b.LAST_CALL_ID as CALL_ID
+        from
+            DETECT_RESULT a
+        left join
+            CM_CONTRACT b
+        on a.contract_no = b.contract_no
+        where
+            a.keyword like #{keyword}
+            AND b.CAMPAIGN_ID IN (select CAMPAIGN_ID from CM_CAMPAIGN WHERE LANG LIKE #{vocLang})
+            <if test="fromDate != '' and toDate != ''">
+            <![CDATA[
+                 and (consult_time >= #{fromDate} and consult_time <= #{toDate})
+             ]]>
+            </if>
+            <if test="speakerCode != ''">
+                and SPEAKER_CODE like #{speakerCode}
+            </if>
+        limit #{page},#{amount}
+    </select>
+
+    <select id="getSttText" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmSttResultDetailVO" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+        SELECT
+          *
+        FROM CM_STT_RSLT_DETAIL
+        WHERE
+          CALL_ID = #{callId}
+        ORDER BY START_TIME
+    </select>
+
+    <select id="getAudioInfo" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+        SELECT
+          LAST_CALL_ID AS CALL_ID, CAMPAIGN_ID, CONTRACT_NO
+        FROM CM_CONTRACT
+        WHERE
+          LAST_CALL_ID = #{callId}
+    </select>
+</mapper>

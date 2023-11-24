@@ -1,0 +1,105 @@
+@charset "utf-8";
+/* CSS Document */
+
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+       -moz-appearance: none;
+            appearance: none;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+
+/* -------------------- button -------------------- */
+/* button common */
+.demobox .chat_iptBox button, .demobox .chat_iptBox a{position:relative; overflow:hidden; display:inline-block; border:none; border-radius:5px; text-align:center; cursor:pointer; white-space:nowrap; vertical-align:middle; font-weight:normal;}
+.demobox .chat_iptBox button:focus {outline:none;}
+
+/* button사이간격 */
+.demobox .chat_iptBox a[class^="btn"] + .demobox .chat_iptBox a[class^="btn"],
+.demobox .chat_iptBox button + .demobox .chat_iptBox button {margin:0 0 0 10px;}
+
+/* button disabled */
+.demobox .chat_iptBox a[class^="btn"][disabled], .demobox .chat_iptBox button[class^="btn"][disabled], .demobox .chat_iptBox a[class*="btn"][disabled]:hover, .demobox .chat_iptBox button[class^="btn"][disabled]:hover {cursor:no-drop; opacity:.4;}
+
+.demobox .chat_iptBox {clear:both; overflow:hidden; padding:20px 0; text-align:center; vertical-align:top; border-bottom: 1px dotted #b1bed5;}
+.demobox .chat_iptBox dl {display:inline-block; margin:0 20px; }
+.demobox .chat_iptBox dl dt {display:inline-block; margin:0 5px 0 0; color:#000; font-size:15px; font-weight: normal;}
+.demobox .chat_iptBox dl dd {display:inline-block; }
+
+.demobox .chat_iptBox dl dd .ipt_txt {width:70px; height:38px; margin:0 3px 0 0; padding:0 5px; border:1px solid #cfd5eb; border-radius:5px;}
+.demobox .chat_iptBox dl dd .ipt_txt:focus {border:1px solid #2575f9;}
+
+.demobox .chat_iptBox .selectType02 {display:inline-block; position:relative; vertical-align:middle;}
+.demobox .chat_iptBox .selectType02 label {position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px);}
+.demobox .chat_iptBox .selectType02 select {overflow:hidden; display:block; min-width:100px; height:40px; line-height:40px; color:#576068; padding:0 30px 0 10px; border:1px solid #cfd5eb; background:#fff url(/resources/images/ico_arrow_down.png) right 10px center no-repeat; background-size:9px 5px; text-align:left; border-radius:5px; box-shadow:none; -webkit-box-shadow:none; font-size:13px; font-family:'Noto Sans KR', sans-serif; appearance:none; -webkit-appearance:none;}
+.demobox .chat_iptBox .selectType02 select::-ms-expand {opacity:0;}/* ie10부터 적용 */
+.demobox .chat_iptBox .selectType02 + .selectType {margin-left:10px;}
+.demobox .chat_iptBox .selectType02 + .demobox .chat_iptBox .selectType02 {margin-left:10px;}
+
+
+.demobox .chat_iptBox button[class^="btnS_small"], a[class^="btnS_small"] {min-width:104px; height:40px; line-height:40px; color:#ffffff; padding:0 25px; border-radius:5px; letter-spacing:-0.4px; font-size:14px;}
+a[class^="btnS_small"]:hover {color:#fff;}
+.btnS_smallBasic {margin:-2px 0 0 20px; background-color:#2575f9;}
+
+.chatTblBox {display:table; clear: both; overflow: hidden; width:820px; margin:0 auto; padding:30px 0 0 0; text-align: center;}
+.chatTblBox .chat_mid { height: 400px;}
+.chatTblBox .chat_mid .talkLst { min-height:300px;}
+
+.chatTblBox .chatbot_box {display:table-cell;width:calc(100% - 30px); margin:0 30px 0 0; padding:0; text-align: left; vertical-align: top;}
+.chatTblBox .chatbot_tblBox {display:table-cell; width:300px; margin:0 0 0 30px; padding:0; text-align: left; vertical-align: top;}
+
+.h3_tit { clear: both; overflow: hidden; padding:0 0 10px 0; color:#000; font-size: 15px; font-weight:500;}
+
+.hide { clear:both; overflow:hidden; width:0; height:0; line-height: 0;}
+.tbl_gray { display: block; overflow: auto; width: 100%;}
+.tbl_gray thead th {padding:12px 0; color:#fff; font-size:14px; background: #697992;}
+.tbl_gray thead th:first-child {padding-left: 10px; border-radius:5px 0 0 5px;}
+.tbl_gray thead th:last-child { border-radius:0 5px 5px 0;}
+.tbl_gray tbody td {padding:10px 0; color:#576068; font-size:13px; border-bottom: 1px solid #e6e6e6;}
+.tbl_gray tbody td:first-child {padding-left: 10px;}
+.tbl_gray tbody {display: block; overflow: auto;  height:390px;}
+
+.tbl_gray th:nth-of-type(1), .tbl_gray td:nth-of-type(1) { width:40px; }
+.tbl_gray th:nth-of-type(2), .tbl_gray td:nth-of-type(2) { width:120px; }
+.tbl_gray th:nth-of-type(3), .tbl_gray td:nth-of-type(3) { width:130px; }
+.tbl_gray th:last-child { width:130px; }
+.tbl_gray td:last-child { width:130px; }
+
+.al_c { text-align:center;}
+/* checkbox */
+.checkbox {display:inline-block; position:relative; min-width:20px; margin-left:5px; vertical-align:top; cursor:pointer;}
+.checkbox label {line-height:18px; padding-left:23px;}
+.checkbox label:empty {padding-left:10px;}
+.checkbox label:before, 
+.checkbox label:after {content:""; position:absolute; left:0; top:0;}
+.checkbox label:before {width:15px; height:15px; border:1px solid #cfd5eb; border-radius:3px !important; background:#fff; cursor:pointer;/* -webkit-transition:background .3s ease; *//* transition:background .3s ease; */-webkit-box-shadow:inset 0 1px 0 0 rgba(0,0,0,.1);box-shadow:inset 0 1px 0 0 rgba(0,0,0,.1);}
+.checkbox input[type="checkbox"] {position:absolute; left:0; width:0; height:0; opacity:0;}
+.checkbox input[type="checkbox"]:checked + label:before {border:1px solid #2575f9; background:#2575f9;}
+.checkbox input[type="checkbox"]:checked + label:after {top:10px; left:4px; width:7px; height:3px; border:2px solid #fff; border-top-style:none; border-right-style:none; transform:rotate(-45deg);}
+.checkbox input[type="checkbox"][disabled]:checked + label:before {background:#fff;}
+.checkbox + .checkbox {margin-left:15px;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

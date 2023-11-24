@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.CommonMonitoringMapper">
+    <!-- 하루 통화량 카운트 -->
+    <select id="getCountOfCall" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CallStatusVO">
+		SELECT tb2.CALL_STATUS, count(*) as count
+        FROM CM_CONTRACT tb1, CALL_HISTORY tb2
+        WHERE tb1.CONTRACT_NO = tb2.CONTRACT_NO
+          AND tb2.CREATED_DTM > date_format(curdate( ), '%Y-%m-%d %H:%i:%s' )
+          AND tb2.CALL_STATUS is not null
+		  AND tb1.IS_INBOUND = #{isInbound}
+		GROUP BY CALL_STATUS
+	</select>
+
+    <!-- 계약건 최근 메모 조회 -->
+    <select id="getRecentContractMemo" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="String">
+		SELECT CALL_MEMO
+        FROM CALL_HISTORY
+		WHERE CALL_ID = #{callId}
+	</select>
+
+    <!-- 모니터링 실행 팝업 페이지. 중간 우측 모니터링 결과표 리스트 -->
+    <select id="getCallPopMonitoringResultList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO">
+		SELECT /* getCallPopMonitoringResultList */
+				tb1.SEQ, tb1.CAMPAIGN_ID, tb2.CAMPAIGN_NM AS CAMP_NM,
+		       	CATEGORY, TASK, TASK_TYPE, TASK_ANSWER, TASK_INFO
+		FROM CM_CAMPAIGN_INFO tb1
+		INNER JOIN CM_CAMPAIGN tb2 on tb1.CAMPAIGN_ID = tb2.CAMPAIGN_ID
+		WHERE tb1.CAMPAIGN_ID = #{campaignId}
+	</select>
+
+    <!-- 모니터링 실행 - 상세보기 팝업. 모니터링 결과 답 select -->
+    <select id="getScoreList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignScoreVO">
+		SELECT 	/* getScoreList */
+				SEQ_NUM, INFO_SEQ, TASK_VALUE
+		FROM CM_CAMPAIGN_INFO tb1
+		INNER JOIN CM_CAMPAIGN_SCORE tb2 ON tb1.SEQ = tb2.INFO_SEQ
+		WHERE tb1.CAMPAIGN_ID = #{campaignId}
+		  AND CALL_ID = #{callId}
+	</select>
+
+    <!--모니터링 실행 - 상세보기 팝업. 가장 마지막 통화 STT 결과 select -->
+    <select id="getSttResultAllList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmSttResultDetailVO">
+		SELECT	/* getSttResultAllList */
+				STT_RESULT_DETAIL_ID, STT_RESULT_ID, CALL_ID, SPEAKER_CODE, IGNORED,
+		        SENTENCE_ID, SENTENCE, concat(START_TIME,''), concat(END_TIME,''), SPEED, SILENCE_YN, CREATED_DTM, UPDATED_DTM, CREATOR_ID, UPDATER_ID
+		FROM CM_STT_RSLT_DETAIL
+		WHERE CALL_ID = #{callId}
+	</select>
+</mapper>

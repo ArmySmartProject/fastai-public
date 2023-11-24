@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.system.admin.mapper.SystemManageMapper">
+
+
+	<!-- 메뉴 그룹 조회 -->
+	<select id="getMenuGroupMainList"  parameterType="map"  resultType="map">
+		SELECT *
+		FROM (
+		SELECT *
+		FROM (
+		SELECT COMPANY_GROUP_ID,
+		COMPANY_ID,
+		GOUP_NM,
+		GROUP_EXP,
+		SORT_ORDR,
+		REGISTER_ID,
+		DATE_FORMAT(REGIST_DT,'%Y-%m-%d') AS REGIST_DT,
+		UPDUSR_ID,
+		DATE_FORMAT(UPDT_DT,'%Y-%m-%d') AS UPDT_DT,
+		DELETE_AT,
+		DELETE_DT
+		FROM TN_COMPANY_MENU_GROUP
+		WHERE
+		COMPANY_ID = #{companyId}
+		AND DELETE_AT = 'N'
+		<if test="ipt_srchtxt != null and ipt_srchtxt != '' "> <!-- 조건선택 - 회사명 -->
+			AND GOUP_NM LIKE CONCAT('%', #{ipt_srchtxt}, '%')
+		</if>
+		ORDER BY REGIST_DT DESC
+		) T
+		) T
+		<choose>
+			<when test='page == lastpage'>
+				LIMIT #{endPageCnt, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</when>
+			<otherwise>
+				LIMIT #{rowNum, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</otherwise>
+		</choose>
+	</select>
+
+	<!-- 메뉴 그룹 count -->
+	<select id="getMenuGroupMainCount"  parameterType="map"  resultType="int">
+		SELECT COUNT(*) AS totalCnt
+		FROM TN_COMPANY_MENU_GROUP
+		WHERE
+		COMPANY_ID = #{companyId}
+		AND DELETE_AT = 'N'
+		<if test="ipt_srchtxt != null and ipt_srchtxt != '' "> <!-- 조건선택 - 회사명 -->
+			AND GOUP_NM LIKE CONCAT('%', #{ipt_srchtxt}, '%')
+		</if>
+		ORDER BY REGIST_DT DESC
+	</select>
+
+	<!-- menuGroup 상세조회 -->
+	<select id="getMenuGroupDetail" parameterType="map" resultType="map">
+			SELECT A.*
+		         , B.MENU_CODE
+		      FROM TN_COMPANY_MENU_GROUP A
+   LEFT OUTER JOIN TN_COMPANY_MENU_GROUP_MENU B
+	 	        ON A.COMPANY_GROUP_ID = B.COMPANY_GROUP_ID
+		     WHERE A.COMPANY_GROUP_ID = #{companyGroupId}
+	</select>
+	<!-- menuGroup 등록 -->
+	<insert id="insertMenuGroup" parameterType="map">
+		INSERT INTO TN_COMPANY_MENU_GROUP (
+						 COMPANY_GROUP_ID
+					   , COMPANY_ID
+					   , GOUP_NM
+					   , GROUP_EXP
+					   , SORT_ORDR
+					   , REGISTER_ID
+					   , REGIST_DT
+					   , DELETE_AT
+		)VALUES (
+					     (SELECT (MAX(AA.COMPANY_GROUP_ID)+1) FROM TN_COMPANY_MENU_GROUP AA)
+					   , #{companyId}
+					   , #{goupNm}
+					   , #{groupExp}
+					   , 1
+					   , #{registerId}
+					   , NOW()
+					   , 'N'
+		)
+	</insert>
+	<!-- menuGroupMenu 등록 -->
+	<insert id="insertMenuGroupMenu" parameterType="map">
+		INSERT INTO TN_COMPANY_MENU_GROUP_MENU (
+							  COMPANY_GROUP_ID
+							, MENU_CODE
+							, SORT_ORDR
+							, REGISTER_ID
+							, REGIST_DT
+							, DELETE_AT
+		)VALUES (
+							  (SELECT MAX(COMPANY_GROUP_ID) FROM TN_COMPANY_MENU_GROUP)
+						    , #{menuCode}
+						    , 1
+						    , #{registerId}
+						    , NOW()
+						    , 'N'
+		)
+	</insert>
+	<!-- menuGroup 수정 -->
+	<update id="updateMenuGroup" parameterType="map">
+		UPDATE TN_COMPANY_MENU_GROUP
+		   SET GOUP_NM = #{goupNm},
+		   	   GROUP_EXP = #{groupExp},
+		   	   UPDUSR_ID = #{updusrId},
+		   	   UPDT_DT = NOW()
+		 WHERE COMPANY_GROUP_ID = #{companyGroupId}
+	</update>
+
+	<!-- menuGroupUser 삭제 -->
+	<delete id="deleteMenuGroupUser" parameterType="String">
+		DELETE FROM TN_COMPANY_MENU_GROUP_USER WHERE COMPANY_GROUP_ID = #{companyGroupId}
+	</delete>
+
+	<!-- menuGroupMenu 삭제 -->
+	<delete id="deleteMenuGroupMenu" parameterType="String">
+		DELETE FROM TN_COMPANY_MENU_GROUP_MENU WHERE COMPANY_GROUP_ID = #{companyGroupId}
+	</delete>
+
+	<insert id="updateMenuGroupMenu" parameterType="map">
+		INSERT INTO TN_COMPANY_MENU_GROUP_MENU (
+							  COMPANY_GROUP_ID
+							, MENU_CODE
+							, SORT_ORDR
+							, REGISTER_ID
+							, REGIST_DT
+							, DELETE_AT
+		)VALUES (
+							  #{companyGroupId}
+						    , #{menuCode}
+						    , 1
+						    , #{registerId}
+						    , NOW()
+						    , 'N'
+		)
+	</insert>
+	<!-- menuGroup 삭제 -->
+	<delete id="deleteMenuGroup" parameterType="String">
+		DELETE FROM TN_COMPANY_MENU_GROUP WHERE COMPANY_GROUP_ID = #{companyGroupId}
+	</delete>
+
+	<!-- 사용자 조회-->
+	<select id="getSystemMenuGroupUserMainList"  parameterType="map"  resultType="map">
+		SELECT *
+		FROM (
+		SELECT *
+		FROM (
+		SELECT A.USER_ID
+		, A.COMPANY_ID
+		, A.USER_NO
+		, IF(A.USER_AUTH_TY = 'S', '슈퍼어드민', if(A.USER_AUTH_TY = 'A', '관리자', if(A.USER_AUTH_TY = 'N', '상담사', '게스트'))) AS  USER_AUTH_NM
+		, A.CI_NFO
+		, A.DUP_INFO
+		, A.SBSCRB_TY
+		, A.USER_PW
+		, A.USER_NM
+		, A.BRTHDY
+		, A.EMAIL
+		, A.LOGIN_FAIL_CNT
+		, A.EXPIRED_YN
+		, A.LOCK_YN
+		, A.CRT_EXPRIED_YN
+		, A.ENABLED_YN
+		, A.SSO_YN
+		, A.POSITION_CD
+		, A.CUST_OP_STATUS
+		, A.DEPT_CD
+		, CONCAT(A.MOBLPHON_NO1, "-", A.MOBLPHON_NO2, "-", A.MOBLPHON_NO3) AS MOBLPHON_NO
+		, A.ZIP
+		, A.BASS_ADRES
+		, A.DETAIL_ADRES
+		, A.RECENT_CONECT_DT
+		, A.PASSWORD_CHANGE_DE
+		, A.SEXDSTN
+		, A.REGISTER_ID
+		, DATE_FORMAT(A.REGIST_DT,'%Y-%m-%d') AS REGIST_DT
+		, A.UPDUSR_ID
+		, DATE_FORMAT(A.UPDT_DT,'%Y-%m-%d') AS UPDT_DT
+		, A.DELETE_AT
+		, A.DELETE_DT
+		, A.PW_ERROR
+		, IF(A.USE_AT = 'Y', '사용', '미사용') AS  USE_AT
+		, D.GOUP_NM
+		FROM TN_USER A
+		LEFT OUTER JOIN ( SELECT C.*
+		, B.USER_ID
+		FROM TN_COMPANY_MENU_GROUP_USER B
+		, TN_COMPANY_MENU_GROUP C
+		WHERE C.COMPANY_GROUP_ID = B.COMPANY_GROUP_ID
+		) D
+		ON A.COMPANY_ID = D.COMPANY_ID
+		AND A.USER_ID = D.USER_ID
+		WHERE A.COMPANY_ID = #{companyId}
+		AND A.DELETE_AT = 'N'
+		<if test="ipt_select != null and ipt_select == 'userNm' and ipt_srchtext != '' "> <!-- 조건선택 - 이름 -->
+			AND A.USER_NM LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'userId' and ipt_srchtext != '' "> <!-- 조건선택 - ID -->
+			AND A.USER_ID LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<choose>  <!-- 검색유형 사용/미사용  -->
+			<when test='rdoVal == "useY"'>
+				AND A.USE_AT = 'Y'
+			</when>
+			<when test='rdoVal == "useN"'>
+				AND A.USE_AT = 'N'
+			</when>
+		</choose>
+		GROUP BY A.USER_ID
+		ORDER BY A.REGIST_DT DESC
+		) T
+		) T
+		<choose>
+			<when test='page == lastpage'>
+				LIMIT #{endPageCnt, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</when>
+			<otherwise>
+				LIMIT #{rowNum, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</otherwise>
+		</choose>
+	</select>
+
+	<!-- company count -->
+	<select id="getSystemMenuGroupUserMainCount"  parameterType="map"  resultType="int">
+		SELECT COUNT(*) AS totalCnt
+		FROM (
+		SELECT A.*
+		, D.GOUP_NM
+		FROM TN_USER A
+		LEFT OUTER JOIN ( SELECT C.*
+		, B.USER_ID
+		FROM TN_COMPANY_MENU_GROUP_USER B
+		, TN_COMPANY_MENU_GROUP C
+		WHERE C.COMPANY_GROUP_ID = B.COMPANY_GROUP_ID
+		) D
+		ON A.COMPANY_ID = D.COMPANY_ID
+		AND A.USER_ID = D.USER_ID
+		WHERE A.COMPANY_ID = #{companyId}
+		AND A.DELETE_AT = 'N'
+		<if test="ipt_select != null and ipt_select == 'userNm' and ipt_srchtext != '' "> <!-- 조건선택 - 이름 -->
+			AND A.USER_NM LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'userId' and ipt_srchtext != '' "> <!-- 조건선택 - ID -->
+			AND A.USER_ID LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		GROUP BY A.USER_ID
+		ORDER BY A.REGIST_DT DESC
+		) T
+	</select>
+
+	<!-- 메뉴 권한 그룹 조회 -->
+	<select id="selectMenuAuthGroup" parameterType="map" resultType="map">
+		SELECT COMPANY_GROUP_ID
+		     , GOUP_NM
+		  FROM TN_COMPANY_MENU_GROUP
+		 WHERE COMPANY_ID = #{companyId}
+		   AND DELETE_AT ='N'
+	</select>
+
+	<!-- 사용자 추가 -->
+	<update id="insertMenuAuthUserInfo" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		/* insertMenuAuthUserInfo - system manage User 등록 */
+		INSERT INTO TN_USER (USER_ID,
+		COMPANY_ID,
+		USER_AUTH_TY,
+		USER_PW,
+		USER_NM,
+		BRTHDY,
+		EMAIL,
+		POSITION_CD,
+		DEPT_CD,
+		MOBLPHON_NO1,
+		MOBLPHON_NO2,
+		MOBLPHON_NO3,
+		SEXDSTN,
+		BASS_ADRES,
+		DETAIL_ADRES,
+		SBSCRB_TY,
+		REGISTER_ID,
+		REGIST_DT,
+		USE_AT
+		) VALUES (#{userId},
+		#{companyId},
+		#{userAuthTy},
+		#{userPw},
+		#{userNm},
+		#{brthdy},
+		#{email},
+		#{positionCd},
+		#{deptCd},
+		#{moblphonNo1},
+		#{moblphonNo2},
+		#{moblphonNo3},
+		#{sexdstn},
+		#{bassAdres},
+		#{detailAdres},
+		#{sbscrbTy},
+		#{CUST_OP_ID},
+		NOW(),
+		#{useAt}
+		) ON DUPLICATE KEY
+		UPDATE
+		COMPANY_ID   = #{companyId},
+		USER_AUTH_TY = #{userAuthTy},
+		<if test="userPw != null and userPw != '' ">
+			USER_PW      = #{userPw},
+		</if>
+		USER_NM      = #{userNm},
+		BRTHDY       = #{brthdy},
+		EMAIL        = #{email},
+		POSITION_CD  = #{positionCd},
+		DEPT_CD      = #{deptCd},
+		MOBLPHON_NO1 = #{moblphonNo1},
+		MOBLPHON_NO2 = #{moblphonNo2},
+		MOBLPHON_NO3 = #{moblphonNo3},
+		SEXDSTN      = #{sexdstn},
+		BASS_ADRES   = #{bassAdres},
+		DETAIL_ADRES = #{detailAdres},
+		UPDUSR_ID    = #{CUST_OP_ID},
+		UPDT_DT      = NOW(),
+		USE_AT       = #{useAt}
+	</update>
+
+	<insert id="insertMenuAuthMenuGroup" parameterType="map">
+		/* insertMenuAuthMenuGroup - Menu Auth Group 등록 */
+		INSERT INTO TN_COMPANY_MENU_GROUP_USER (COMPANY_GROUP_ID
+											  , USER_ID
+											  , SORT_ORDR
+											  , REGISTER_ID
+											  , REGIST_DT
+											  , DELETE_AT
+		                			  ) VALUES (#{companyGroupId}
+		                			  		  , #{userId}
+		                			  		  , 1
+		                			  		  , #{CUST_OP_ID}
+		                			  		  , NOW()
+		                			  		  , 'N'
+		                			  ) ON DUPLICATE KEY
+		                  UPDATE
+							  	COMPANY_GROUP_ID = #{companyGroupId},
+								UPDUSR_ID    = #{CUST_OP_ID},
+								UPDT_DT      = NOW()
+	</insert>
+
+	<update id="updateMenuAuthMenuGroup" parameterType="map">
+	/* updateMenuAuthMenuGroup - Menu Auth Group 수정 */
+		UPDATE TN_COMPANY_MENU_GROUP_USER
+		   SET COMPANY_GROUP_ID = #{companyGroupId}
+			 , UPDUSR_ID = #{CUST_OP_ID}
+			 , UPDT_DT = NOW()
+	     WHERE USER_ID = #{userId}
+	</update>
+
+	<select id="selectUserId" parameterType="map" resultType="String">
+		SELECT USER_ID FROM TN_COMPANY_MENU_GROUP_USER WHERE USER_ID = #{userId}
+	</select>
+
+	<select id="selectPassword" parameterType="map" resultType="String">
+		SELECT USER_PW FROM TN_USER WHERE USER_ID = #{userId}
+	</select>
+
+	<select id="getMenuGroupUserInfo"  parameterType="map"  resultType="map">
+		SELECT AA.USER_ID,
+		       AA.USER_NM,
+		       AA.USER_PW,
+		       AA.BRTHDY,
+		       AA.EMAIL,
+		       AA.POSITION_CD,
+		       AA.DEPT_CD,
+		       AA.SEXDSTN,
+		       AA.BASS_ADRES,
+		       AA.DETAIL_ADRES,
+		       AA.USE_AT,
+	           AA.COMPANY_ID,
+		       BB.COMPANY_NAME,
+		       AA.MOBLPHON_NO1,
+		       AA.MOBLPHON_NO2,
+		       AA.MOBLPHON_NO3,
+		       CONCAT(AA.MOBLPHON_NO1, "-", AA.MOBLPHON_NO2, "-", AA.MOBLPHON_NO3) AS MOBLPHON_NO,
+		       AA.USER_AUTH_TY,
+		       if(AA.USER_AUTH_TY = 'S', '슈퍼어드민', if(AA.USER_AUTH_TY = 'A', '관리자', if(AA.USER_AUTH_TY = 'N', '상담사', '게스트'))) AS  USER_AUTH_NM,
+		       DATE_FORMAT(AA.REGIST_DT, '%Y-%m-%d') AS REGIST_DT,
+		       (SELECT COMPANY_GROUP_ID FROM TN_COMPANY_MENU_GROUP_USER WHERE USER_ID = #{ipt_srchId} ORDER BY REGIST_DT DESC LIMIT 1) AS COMPANY_GROUP_ID
+          FROM TN_USER AA, CM_COMPANY BB
+		 WHERE 1=1
+		   AND AA.COMPANY_ID = BB.COMPANY_ID
+		   AND AA.DELETE_AT = 'N'
+		   AND AA.USER_ID = #{ipt_srchId}
+	</select>
+
+	<!-- 사용자 삭제 -->
+	<delete id="deleteMenuGroupUserInfo" parameterType="String">
+		/* deleteMenuGroupUserInfo - systemMenuGroup User 삭제 */
+		 DELETE FROM TN_USER WHERE USER_ID = #{userId}
+	</delete>
+
+	<!-- 사용자 권한 그룹 삭제 -->
+	<delete id="deleteAuthGroupInfo" parameterType="String">
+		/* deleteAuthgroupInfo - 사용자 메뉴 권한 그룹 삭제 */
+  		 DELETE FROM TN_COMPANY_MENU_GROUP_USER WHERE USER_ID = #{userId}
+	</delete>
+
+	<!-- 로그인 사용자 회사 조회 -->
+	<select id="selectSystemCompanyInfo" parameterType="map" resultType="map">
+		SELECT *
+		  FROM CM_COMPANY
+		 WHERE COMPANY_ID = #{companyId}
+		   AND DELETE_AT ='N'
+	</select>
+
+	<!-- 회사 정보 수정 -->
+	<update id="updateSystemCompanyInfo" parameterType="map">
+		UPDATE CM_COMPANY SET
+							  BIZRNO1 = #{bizrno1}
+							, BIZRNO2 = #{bizrno2}
+							, BIZRNO3 = #{bizrno3}
+							, MOBLPHON_NO1 = #{moblphonNo1}
+							, MOBLPHON_NO2 = #{moblphonNo2}
+							, MOBLPHON_NO3 = #{moblphonNo3}
+							, FXNUM1 = #{fxnum1}
+							, FXNUM2 = #{fxnum2}
+							, FXNUM3 = #{fxnum3}
+							, BASS_ADRES = #{bassAdres}
+						    , DETAIL_ADRES = #{detailAdres}
+						    , UPDUSR_ID = #{userId}
+						    , UPDT_DT = NOW()
+							, OP_START_TM = #{opstarttm}
+							, OP_END_TM = #{opendtm}
+		WHERE COMPANY_ID = #{companyId}
+	</update>
+
+	<!-- 회사 메뉴 조회 -->
+	<select id="selectCompanyMenu" parameterType="map" resultType="map">
+		SELECT A.* FROM TN_COMPANY_MENU A join TN_MENU B ON A.MENU_CODE = B.MENU_CODE AND B.DELETE_AT = 'N' AND B.USE_AT = 'Y' WHERE A.COMPANY_ID = #{companyId}
+	</select>
+
+	<!-- company - bot mapping 정보 조회 -->
+	<select id="selectBotIdsByCompanyId" parameterType="map" resultType="map">
+		SELECT *
+		FROM BOT_MAPPING
+		WHERE COMPANY_ID = #{companyId}
+	</select>
+
+	<!-- 회사의 인텐트 목록 조회 -->
+	<select id="selectIntentList" parameterType="map" resultType="map">
+        SELECT DISTINCT b.BOT_ID, ai.ID, ai.DISPLAY_NM, ai.TYPE, ifnull(userCnt.userIdCnt, '-') AS counselors,
+        ifnull(aim.UPDATER_ID, '-') AS updaterId, ifnull(aim.UPDATED_AT, '-') AS updatedAt
+        FROM BOT_MAPPING AS b
+        CROSS JOIN ALARM_INTENT AS ai
+        LEFT JOIN (
+                SELECT aim3.BOT_ID, aim3.ALR_INTENT_ID, max(aim3.UPDATED_AT) AS UPDATED_AT, aim3.USER_ID, aim3.UPDATER_ID
+                FROM ALR_INT_MAPPING AS aim3
+                WHERE aim3.USER_ID IN (SELECT tu.USER_ID FROM TN_USER AS tu WHERE tu.COMPANY_ID=#{companyId})
+                GROUP BY aim3.BOT_ID, aim3.ALR_INTENT_ID
+        ) aim
+        ON ai.ID=aim.ALR_INTENT_ID AND b.BOT_ID=aim.BOT_ID
+        LEFT JOIN (
+            SELECT BOT_ID, ALR_INTENT_ID, COUNT(USER_ID) AS userIdCnt
+            FROM ALR_INT_MAPPING
+            WHERE USER_ID IN (
+                SELECT USER_ID FROM TN_USER WHERE COMPANY_ID=#{companyId}
+            ) GROUP BY BOT_ID, ALR_INTENT_ID
+        ) userCnt
+        ON b.BOT_ID=userCnt.BOT_ID AND ai.ID=userCnt.ALR_INTENT_ID
+        WHERE b.COMPANY_ID=#{companyId} AND ai.DISPLAY_NM LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY b.BOT_ID, ai.ID
+	</select>
+
+	<!-- 회사별 배정 가능한 상담사 목록 조회 -->
+	<select id="selectPosCounselorList" parameterType="map" resultType="map">
+		SELECT tu.USER_NM, tu.USER_ID, ifnull(aim.ASSIGNED_CNT, 0) AS USER_STATUS
+		FROM TN_USER AS tu
+		LEFT JOIN (SELECT USER_ID, COUNT(USER_ID) AS ASSIGNED_CNT FROM ALR_INT_MAPPING GROUP BY USER_ID) aim
+		ON tu.USER_ID=aim.USER_ID
+		WHERE COMPANY_ID=#{companyId} AND (tu.USER_AUTH_TY='N' or tu.USER_AUTH_TY='A')
+		    AND USER_NM LIKE CONCAT('%', #{keyword}, '%') AND tu.USER_ID NOT IN (
+		    SELECT aim2.USER_ID FROM ALR_INT_MAPPING AS aim2 WHERE aim2.BOT_ID=#{botId} AND aim2.ALR_INTENT_ID=#{intentId})
+	</select>
+
+	<!-- 인텐트별 할당된 상담사 목록 조회 -->
+	<select id="selectAssignedCounselorList" parameterType="map" resultType="map">
+		SELECT tu.USER_NM, tu.USER_ID, aim2.USER_STATUS
+		FROM ALR_INT_MAPPING AS aim
+		LEFT JOIN TN_USER AS tu
+		ON aim.USER_ID=tu.USER_ID
+		LEFT JOIN (select USER_ID, count(USER_ID) AS USER_STATUS FROM ALR_INT_MAPPING GROUP BY USER_ID) aim2
+		ON aim.USER_ID=aim2.USER_ID
+		WHERE aim.BOT_ID=#{botId} AND aim.ALR_INTENT_ID=#{intentId} AND tu.COMPANY_ID=#{companyId}
+		    AND USER_NM LIKE CONCAT('%', #{keyword}, '%')
+	</select>
+
+	<!-- 챗봇-인텐트에 배정된 상담사 삭제 -->
+	<delete id="deleteCounselorList" parameterType="map">
+		DELETE FROM ALR_INT_MAPPING
+		WHERE BOT_ID=#{botId} AND ALR_INTENT_ID=#{intentId} AND USER_ID IN (
+		    SELECT USER_ID
+		    FROM TN_USER
+		    WHERE COMPANY_ID=#{companyId}
+		)
+	</delete>
+
+	<!-- 챗봇-인텐트에 배정된 상담사 insert -->
+	<insert id="insertCounselorList" parameterType="map">
+		INSERT INTO ALR_INT_MAPPING (BOT_ID, ALR_INTENT_ID, USER_ID, UPDATED_AT, UPDATER_ID)
+		VALUES
+		<foreach collection="counselorInfoList" item="item" separator=",">
+			(#{botId}, #{intentId}, #{item.userId}, NOW(), #{updaterId})
+		</foreach>
+	</insert>
+
+	<select id="getCompanyCampaigns" parameterType="map" resultType="map">
+		SELECT A.CAMPAIGN_ID AS campaignId
+			 , B.CAMPAIGN_NM AS campaignNm
+		  FROM CM_COMPANY_CAMPAIGNS A
+ 		  LEFT OUTER JOIN CM_CAMPAIGN B
+		    ON A.CAMPAIGN_ID = B.CAMPAIGN_ID
+		 WHERE A.COMPANY_ID = #{companyId}
+	</select>
+
+	<select id="getCompanyUserCampaigns" parameterType="string" resultType="map">
+		SELECT COMPANY_ID AS companyId
+  			 , USER_ID AS userId
+ 			 , CAMPAIGN_ID AS campaignId
+		  FROM CM_COMPANY_USER_CAMPAIGNS
+         WHERE USER_ID = #{userId}
+	</select>
+
+	<insert id="insertCompanyUserCampaigns" parameterType="map">
+		INSERT INTO CM_COMPANY_USER_CAMPAIGNS
+			(COMPANY_ID, USER_ID, CAMPAIGN_ID)
+		VALUES
+			<foreach collection="userCampaignList" item="userCampaignList" separator=",">
+				(#{companyId}, #{userId}, #{userCampaignList})
+			</foreach>
+	</insert>
+
+	<delete id="deleteCompanyUserCampaigns" parameterType="string">
+		DELETE
+		  FROM CM_COMPANY_USER_CAMPAIGNS
+ 		 WHERE USER_ID = #{userId}
+	</delete>
+</mapper>

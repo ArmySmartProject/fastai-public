@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.CommonMapper">
+
+	<!-- 모니터링 페이지 상단 검색 부분 관련 변수 -->
+	<select id="getSeachCodeList" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCommonCdVO">
+		SELECT /* getSeachCodeList */
+		       *
+		FROM (
+				SELECT 'FCD_02' as firstCd, CODE, cd_desc, NOTE FROM CM_COMMON_CD WHERE first_cd = '02'
+				UNION ALL
+				SELECT 'FCD_09' as firstCd, CODE, cd_desc, NOTE FROM CM_COMMON_CD WHERE first_cd = '09'
+				UNION ALL
+				SELECT 'FCD_10' as firstCd, CODE, cd_desc, NOTE FROM CM_COMMON_CD WHERE first_cd = '10'
+				UNION ALL
+    			SELECT 'CUST_OP' as firstCd, USER_ID as code, USER_NM as cd_desc, '' as note FROM TN_USER WHERE USE_AT = 'Y'
+    			UNION ALL
+    			SELECT 'MNT_TYPE' as firstCd, CAMPAIGN_ID as code, CAMPAIGN_NM as cd_desc, DESCRIPTION as note FROM CM_CAMPAIGN
+    			UNION ALL
+    			SELECT 'FCD_11' as firstCd, CODE, cd_desc, NOTE FROM CM_COMMON_CD WHERE first_cd = '11'
+				UNION ALL
+				SELECT 'PROD_NAME' as firstCd, CAMPAIGN_ID as code, CAMPAIGN_NM as cd_desc, 'description' as note FROM CM_CAMPAIGN
+			) T1
+		ORDER BY T1.firstCd, T1.code
+	</select>
+
+  <select id="getCmmCdList"  parameterType="map"  resultType="map">
+			SELECT /*getCmmCdList - 화면 시작시 필요 한 공통 코드*/
+			       A.FIRST_CD
+			     , A.CODE
+			     <choose>
+			     	<when test='locale == "en"'>
+			     		, A.CD_DESC_ENG AS CODENM
+			     	</when>
+			     	<otherwise>
+			     		, A.CD_DESC AS CODENM	
+			     	</otherwise>
+			     </choose>
+			FROM   CM_COMMON_CD A
+			WHERE FIRST_CD = #{FIRST_CD}
+			ORDER BY CODE DESC
+    </select>
+
+  <select id="getCustCategoryCdList"  parameterType="map"  resultType="map">
+			SELECT /*getCustCategoryCdList - 카테고리 코드*/
+				   A.CODE
+			     , A.CODE_NM
+			     , A.CODE_NM_ENG
+			     , A.UPCODE
+			     , A.SORT
+			     , A.CAMPAIGN_ID
+			FROM   CUST_CATEGORY_CD A
+			WHERE A.CAMPAIGN_ID =#{CAMPAIGN_ID}
+				<if test="UPCODE != null and UPCODE != '' ">
+					  AND A.UPCODE =#{UPCODE}
+				</if>
+			ORDER BY A.SORT
+    </select>
+
+
+
+</mapper>
+
+
+
+
+

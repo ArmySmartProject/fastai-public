@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.CampaignMapper">
+
+	<select id="getCampaignTaskList" parameterType="Integer" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO">
+		SELECT
+			SEQ,
+			CAMPAIGN_ID,
+			CATEGORY,
+			TASK,
+			TASK_TYPE,
+			TASK_ANSWER,
+			TASK_INFO
+		FROM
+			CM_CAMPAIGN_INFO
+		WHERE
+			CAMPAIGN_ID = #{campaignId}
+	</select>
+
+	<select id="getCampaignListByService" parameterType="String" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO">
+		SELECT
+			SERVICE_NM,
+			CAMPAIGN_ID,
+			CAMPAIGN_NM
+		FROM
+			CM_CAMPAIGN_SERVICE
+		WHERE
+			SERVICE_NM = #{serviceName}
+	</select>
+
+	<insert id="createServiceMonitoring" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.MntTargetMngVO" keyProperty="contractNo" useGeneratedKeys="true">
+		INSERT INTO
+			CM_CONTRACT(
+				CAMPAIGN_ID,
+				TEL_NO,
+				IS_INBOUND)
+		VALUES(
+			#{campaignId},
+			#{custTelNo},
+			'N'
+		)
+	</insert>
+
+	<insert id="insertUser" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.MntTargetMngVO" keyProperty="custId" useGeneratedKeys="true">
+		INSERT INTO CUST_BASE_INFO (CUST_NM, CUST_TEL_NO)
+		SELECT #{custNm}, #{custTelNo}
+		FROM DUAL
+		WHERE NOT EXISTS(
+			SELECT
+				*
+			FROM
+				CUST_BASE_INFO
+			WHERE
+				CUST_NM = #{custNm}
+				AND CUST_TEL_NO = #{custTelNo}
+		)
+	</insert>
+
+	<select id="getCampaignList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO">
+		SELECT A.CAMPAIGN_ID AS campaignId
+		     , A.CAMPAIGN_NM AS campaignNm
+		  FROM CM_CAMPAIGN A
+		     , CM_COMPANY B
+		     <choose>
+				 <when test='userAuthTy == "N"'>
+					 , CM_COMPANY_USER_CAMPAIGNS C
+				 </when>
+		     	 <otherwise>
+					 , CM_COMPANY_CAMPAIGNS C
+				 </otherwise>
+			 </choose>
+		 WHERE A.CAMPAIGN_ID = C.CAMPAIGN_ID
+		   AND C.COMPANY_ID = B.COMPANY_ID
+		   <if test='isInbound != null and isInbound != ""'>
+			   <if test='isInbound == "N"'>
+				   AND A.IS_INBOUND = "N"
+			   </if>
+			   <if test='isInbound == "Y"'>
+				   AND A.IS_INBOUND = "Y"
+			   </if>
+		   </if>
+		   <if test='userAuthTy != "S"'>
+			   AND B.COMPANY_ID = #{companyId}
+		   </if>
+		   <if test='userAuthTy == "N"'>
+		   	   AND C.USER_ID = #{custOpId}
+		   </if>
+	</select>
+
+	<select id="getVoiceStatCampaignList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO" resultType="map">
+		SELECT A.CAMPAIGN_ID AS campaignId
+		, A.CAMPAIGN_NM AS campaignNm
+		, DATE_FORMAT(A.CREATED_DTM, '%Y-%m-%d') AS startDt
+		, A.USE_YN AS useYn
+		, A.IS_INBOUND AS isInbound
+		, IFNULL(B.OP_START_TM, '') AS opStartTm
+		, IFNULL(B.OP_END_TM, '') AS opEndTm
+		FROM CM_CAMPAIGN A
+		, CM_COMPANY B
+		<choose>
+			<when test='userAuthTy == "N"'>
+			   , CM_COMPANY_USER_CAMPAIGNS D
+			</when>
+		   <otherwise>
+			   , CM_COMPANY_CAMPAIGNS C
+		   </otherwise>
+		</choose>
+		WHERE
+		<choose>
+			<when test='userAuthTy == "N"'>
+		        A.CAMPAIGN_ID = D.CAMPAIGN_ID
+				AND D.COMPANY_ID = B.COMPANY_ID
+			</when>
+			<otherwise>
+				A.CAMPAIGN_ID = C.CAMPAIGN_ID
+				AND C.COMPANY_ID = B.COMPANY_ID
+			</otherwise>
+		</choose>
+		AND A.IS_INBOUND IS NOT NULL
+		AND A.CAMPAIGN_NM LIKE CONCAT('%',#{campaignNm},'%')
+		<if test='userAuthTy != "S"'>
+			AND B.COMPANY_ID = #{companyId}
+		</if>
+		<if test='userAuthTy == "N"'>
+			AND A.CAMPAIGN_ID = D.CAMPAIGN_ID
+			AND D.USER_ID = #{custOpId}
+		</if>
+		GROUP BY A.CAMPAIGN_ID
+		ORDER BY A.CREATED_DTM DESC
+	</select>
+
+	<select id="getAllCampaign" resultType="map">
+		SELECT campaign_id AS campaignId
+		     , campaign_nm AS campaignNm
+	      FROM CM_CAMPAIGN
+	</select>
+
+</mapper>

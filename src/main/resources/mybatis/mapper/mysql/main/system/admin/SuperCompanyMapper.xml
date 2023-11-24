@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.system.admin.mapper.SuperCompanyMapper">
+
+	<!-- company 조회 -->
+	<select id="getADMCompanyMainList"  parameterType="map"  resultType="map">
+		/*getADMCompanyMainList - superadmin company 조회 */
+		SELECT *
+		FROM (
+				SELECT *, @ROWNUM := @ROWNUM + 1 AS RNUM
+				  FROM (
+				  			SELECT AA.COMPANY_ID,
+					       		   AA.COMPANY_NAME,
+					       		   AA.COMPANY_NAME_EN,
+					       		   CONCAT(AA.MOBLPHON_NO1, "-", AA.MOBLPHON_NO2, "-", AA.MOBLPHON_NO3) AS MOBLPHON_NO,
+								   DATE_FORMAT(AA.REGIST_DT,'%Y.%m.%d') AS REGIST_DT,
+								   IF(AA.DELETE_AT='N', '사용', '미사용') AS DELETE_AT
+					          FROM CM_COMPANY AA
+					          JOIN (SELECT @ROWNUM := 0) AS R
+							 WHERE 1=1
+
+							<if test="ipt_select != null and ipt_select == 'companyKoNm' and ipt_text != '' "> <!-- 조건선택 - 회사명 -->
+								   AND AA.COMPANY_NAME LIKE CONCAT('%', #{ipt_text}, '%')
+							</if>
+							<if test="ipt_select != null and ipt_select == 'companyEnNm' and ipt_text != '' "> <!-- 조건선택 - 회사명 -->
+								   AND AA.COMPANY_NAME_EN LIKE CONCAT('%', #{ipt_text}, '%')
+							</if>
+							<if test="ipt_select != null and ipt_select == 'companyId' and ipt_text != '' "> <!-- 조건선택 - 회사ID -->
+								   AND AA.COMPANY_ID LIKE CONCAT('%', #{ipt_text}, '%')
+							</if>
+						    <choose>  <!-- 검색유형 사용/미사용  -->
+							 	<when test='rdoVal == "useY"'>
+							 	   AND AA.DELETE_AT = 'N'
+							 	</when>
+							 	<when test='rdoVal == "useN"'>
+							 	   AND AA.DELETE_AT = 'Y'
+							 	</when>
+						    </choose>
+
+						     ORDER BY AA.REGIST_DT DESC
+				  ) T
+		) T
+
+		<choose>
+			<when test='page == lastpage'>
+				LIMIT #{endPageCnt, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</when>
+			<otherwise>
+				LIMIT #{rowNum, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</otherwise>
+		</choose>
+    </select>
+
+    <!-- company count -->
+    <select id="getADMCompanyMainCount"  parameterType="map"  resultType="int">
+		/*getADMCompanyMainCount - superadmin next company count */
+		SELECT COUNT(*) AS totalCnt
+          FROM CM_COMPANY AA
+		 WHERE 1=1
+		<if test="ipt_select != null and ipt_select == 'companyKoNm' and ipt_text != '' "> <!-- 조건선택 - 회사명 -->
+			AND AA.COMPANY_NAME LIKE CONCAT('%', #{ipt_text}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'companyEnNm' and ipt_text != '' "> <!-- 조건선택 - 회사명 -->
+			AND AA.COMPANY_NAME_EN LIKE CONCAT('%', #{ipt_text}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'companyId' and ipt_text != '' "> <!-- 조건선택 - 회사ID -->
+			   AND AA.COMPANY_ID LIKE CONCAT('%', #{ipt_text}, '%')
+		</if>
+	    <choose>  <!-- 검색유형 사용/미사용  -->
+		 	<when test='rdoVal == "useY"'>
+		 	   AND AA.DELETE_AT = 'N'
+		 	</when>
+		 	<when test='rdoVal == "useN"'>
+		 	   AND AA.DELETE_AT = 'Y'
+		 	</when>
+	    </choose>
+
+	     ORDER BY AA.REGIST_DT DESC
+	</select>
+
+	<!-- COMPANY 추가 -->
+	<update id="insertCompanyInfo" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		/* insertCompanyInfo - superadmin COMPANY 추가 */
+		INSERT INTO CM_COMPANY (COMPANY_ID,
+		        COMPANY_NAME,
+		        COMPANY_NAME_EN,
+		        JURIRNO1,
+		        JURIRNO2,
+		        BIZRNO1,
+		        BIZRNO2,
+		        BIZRNO3,
+		        MOBLPHON_NO1,
+				MOBLPHON_NO2,
+				MOBLPHON_NO3,
+				FXNUM1,
+				FXNUM2,
+				FXNUM3,
+				RPRSNTV_NM,
+				BASS_ADRES,
+				DETAIL_ADRES,
+				REGISTER_ID,
+				REGIST_DT,
+				DELETE_AT,
+		        OP_START_TM,
+				OP_END_TM
+			   )
+	    VALUES (#{companyId},
+                #{companyName},
+                #{companyNameEn},
+                #{jurirno1},
+                #{jurirno2},
+                #{bizrno1},
+                #{bizrno2},
+                #{bizrno3},
+                #{moblphonNo1},
+				#{moblphonNo2},
+				#{moblphonNo3},
+				#{fxnum1},
+				#{fxnum2},
+				#{fxnum3},
+				#{rprsntvNm},
+				#{bassAdres},
+				#{detailAdres},
+				#{CUST_OP_ID},
+				NOW(),
+				#{deleteAt},
+	            #{opstarttm},
+	            #{opendtm}
+			   )
+			   ON DUPLICATE KEY
+			   UPDATE
+			  	COMPANY_NAME    = #{companyName},
+		        COMPANY_NAME_EN = #{companyNameEn},
+		        JURIRNO1        = #{jurirno1},
+		        JURIRNO2        = #{jurirno2},
+		        BIZRNO1         = #{bizrno1},
+		        BIZRNO2         = #{bizrno2},
+		        BIZRNO3         = #{bizrno3},
+		        MOBLPHON_NO1    = #{moblphonNo1},
+				MOBLPHON_NO2    = #{moblphonNo2},
+				MOBLPHON_NO3    = #{moblphonNo3},
+				FXNUM1          = #{fxnum1},
+				FXNUM2          = #{fxnum2},
+				FXNUM3          = #{fxnum3},
+				RPRSNTV_NM      = #{rprsntvNm},
+				BASS_ADRES      = #{bassAdres},
+				DETAIL_ADRES    = #{detailAdres},
+				UPDUSR_ID       = #{CUST_OP_ID},
+				DELETE_AT       = #{deleteAt},
+				UPDT_DT         = NOW(),
+                OP_START_TM     = #{opstarttm},
+			    OP_END_TM       = #{opendtm}
+	</update>
+
+	<select id="getCompanyNameInfo"  parameterType="map"  resultType="map">
+		/* getCompanyNameInfo - superadmin companyName 중복 조회 */
+		SELECT COMPANY_NAME
+          FROM CM_COMPANY AA
+		 WHERE 1=1
+		   AND AA.COMPANY_NAME = #{companyName}
+	     ORDER BY AA.REGIST_DT DESC
+	</select>
+
+	<select id="getCompanyInfo"  parameterType="map"  resultType="map">
+		/* getCompanyNameInfo - superadmin company 상세 조회 */
+		SELECT COMPANY_ID
+		     , COMPANY_NAME
+		     , COMPANY_NAME_EN
+		     , CONCAT(JURIRNO1, "-", JURIRNO2) AS JURIRNO
+		     , CONCAT(BIZRNO1, "-", BIZRNO2, "-", BIZRNO3) AS BIZRNO
+		     , MOBLPHON_NO1
+		     , MOBLPHON_NO2
+		     , MOBLPHON_NO3
+		     , FXNUM1
+		     , FXNUM2
+		     , FXNUM3
+		     , RPRSNTV_NM
+		     , REGISTER_ID
+		     , REGIST_DT
+		     , UPDUSR_ID
+		     , UPDT_DT
+		     , DELETE_AT
+		     , DELETE_DT
+		     , BASS_ADRES
+		     , DETAIL_ADRES
+			 , OP_START_TM
+			 , OP_END_TM
+          FROM CM_COMPANY
+		 WHERE 1=1
+		   AND COMPANY_ID = #{companyId}
+	     ORDER BY REGIST_DT DESC
+	</select>
+
+	<!-- 사용자 삭제-->
+	<update id="deleteCompanyInfo" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		UPDATE CM_COMPANY
+		   SET DELETE_AT = 'Y',
+			   DELETE_DT = NOW()
+		 WHERE COMPANY_ID = #{companyId}
+	</update>
+
+	<!-- 사용자 조회-->
+	<select id="getADMUserMainList"  parameterType="map"  resultType="map">
+		SELECT *
+		FROM (
+				SELECT *
+				  FROM (
+				  			SELECT AA.USER_ID,
+				  			       AA.USER_NM,
+						           AA.COMPANY_ID,
+							       BB.COMPANY_NAME,
+							       BB.COMPANY_NAME_EN,
+							       AA.MOBLPHON_NO1,
+							       AA.MOBLPHON_NO2,
+							       AA.MOBLPHON_NO3,
+							       AA.PW_ERROR,
+							       CONCAT(AA.MOBLPHON_NO1, "-", AA.MOBLPHON_NO2, "-", AA.MOBLPHON_NO3) AS MOBLPHON_NO,
+							       AA.USER_AUTH_TY,
+							       if(AA.USER_AUTH_TY = 'S', '슈퍼어드민', if(AA.USER_AUTH_TY = 'A', '관리자', if(AA.USER_AUTH_TY = 'N', '상담사', '게스트'))) AS  USER_AUTH_NM,
+							       DATE_FORMAT(AA.REGIST_DT, '%Y-%m-%d') AS REGIST_DT
+					          FROM TN_USER AA, CM_COMPANY BB
+							 WHERE 1=1
+							   AND AA.COMPANY_ID = BB.COMPANY_ID
+							   AND AA.DELETE_AT = 'N'
+							<if test="ipt_select != null and ipt_select == 'userNm' and ipt_srchtext != '' "> <!-- 조건선택 - 이름 -->
+								   AND AA.USER_NM LIKE CONCAT('%', #{ipt_srchtext}, '%')
+							</if>
+							<if test="ipt_select != null and ipt_select == 'userId' and ipt_srchtext != '' "> <!-- 조건선택 - 아이디 -->
+								   AND AA.USER_ID LIKE CONCAT('%', #{ipt_srchtext}, '%')
+							</if>
+							<if test="ipt_select != null and ipt_select == 'companyNmKo' and ipt_srchtext != '' "> <!-- 조건선택 - 회사명 -->
+								   AND BB.COMPANY_NAME LIKE CONCAT('%', #{ipt_srchtext}, '%')
+							</if>
+							<if test="ipt_select != null and ipt_select == 'companyNmEn' and ipt_srchtext != '' "> <!-- 조건선택 - 회사명 -->
+								   AND BB.COMPANY_NAME_EN LIKE CONCAT('%', #{ipt_srchtext}, '%')
+							</if>
+							<if test="ipt_select != null and ipt_select == 'companyId' and ipt_srchtext != '' "> <!-- 조건선택 - 회사ID -->
+								   AND AA.COMPANY_ID LIKE CONCAT('%', #{ipt_srchtext}, '%')
+							</if>
+							<if test="authTy != null and authTy != ''"> <!-- 조건선택 - 회사ID -->
+								   AND AA.USER_AUTH_TY = #{authTy}
+							</if>
+
+
+						     ORDER BY AA.REGIST_DT DESC
+				  ) T
+		) T
+
+		<choose>
+			<when test='page == lastpage'>
+				LIMIT #{endPageCnt, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</when>
+			<otherwise>
+				LIMIT #{rowNum, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+			</otherwise>
+		</choose>
+	</select>
+
+	<!-- company count -->
+    <select id="getADMUserMainCount"  parameterType="map"  resultType="int">
+		SELECT COUNT(*) AS totalCnt
+          FROM TN_USER AA, CM_COMPANY BB
+		 WHERE 1=1
+		   AND AA.COMPANY_ID = BB.COMPANY_ID
+		   AND AA.DELETE_AT = 'N'
+
+		<if test="ipt_select != null and ipt_select == 'userNm' and ipt_srchtext != '' "> <!-- 조건선택 - 이름 -->
+		   AND AA.USER_NM LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'userId' and ipt_srchtext != '' "> <!-- 조건선택 - 아이디 -->
+		   AND AA.USER_ID LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'companyNmKo' and ipt_srchtext != '' "> <!-- 조건선택 - 회사명 -->
+		   AND BB.COMPANY_NAME LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'companyNmEn' and ipt_srchtext != '' "> <!-- 조건선택 - 회사명 -->
+		   AND BB.COMPANY_NAME_EN LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<if test="ipt_select != null and ipt_select == 'companyId' and ipt_srchtext != '' "> <!-- 조건선택 - 회사ID -->
+		   AND AA.COMPANY_ID LIKE CONCAT('%', #{ipt_srchtext}, '%')
+		</if>
+		<if test="authTy != null and authTy != ''"> <!-- 조건선택 - 회사ID -->
+		   AND AA.USER_AUTH_TY = #{authTy}
+		</if>
+	     ORDER BY AA.REGIST_DT DESC
+	</select>
+
+	<select id="getUserInfo"  parameterType="map"  resultType="map">
+
+		SELECT AA.USER_ID,
+		       AA.USER_NM,
+		       AA.USER_PW,
+		       AA.BRTHDY,
+		       AA.EMAIL,
+		       AA.POSITION_CD,
+		       AA.DEPT_CD,
+		       AA.SEXDSTN,
+		       AA.BASS_ADRES,
+		       AA.DETAIL_ADRES,
+		       AA.USE_AT,
+	           AA.COMPANY_ID,
+		       BB.COMPANY_NAME,
+		       AA.MOBLPHON_NO1,
+		       AA.MOBLPHON_NO2,
+		       AA.MOBLPHON_NO3,
+		       CONCAT(AA.MOBLPHON_NO1, "-", AA.MOBLPHON_NO2, "-", AA.MOBLPHON_NO3) AS MOBLPHON_NO,
+		       AA.USER_AUTH_TY,
+		       if(AA.USER_AUTH_TY = 'S', '슈퍼어드민', if(AA.USER_AUTH_TY = 'A', '관리자', if(AA.USER_AUTH_TY = 'N', '상담사', '게스트'))) AS  USER_AUTH_NM,
+		       DATE_FORMAT(AA.REGIST_DT, '%Y-%m-%d') AS REGIST_DT
+          FROM TN_USER AA, CM_COMPANY BB
+		 WHERE 1=1
+		   AND AA.COMPANY_ID = BB.COMPANY_ID
+		   AND AA.USER_ID = #{ipt_srchId}
+	</select>
+
+	<!-- 사용자 추가 -->
+	<update id="insertUserInfo" parameterType="ai.maum.biz.fastaicc.main.user.domain.UserVO">
+		/* insertUserInfo - superadmin User 등록 */
+		INSERT INTO TN_USER (USER_ID,
+		                     COMPANY_ID,
+		                     USER_AUTH_TY,
+		                     USER_PW,
+		                     USER_NM,
+		                     BRTHDY,
+		                     EMAIL,
+		                     ENABLED_YN,
+		                     POSITION_CD,
+		                     DEPT_CD,
+		                     MOBLPHON_NO1,
+		                     MOBLPHON_NO2,
+		                     MOBLPHON_NO3,
+		                     SEXDSTN,
+		                     BASS_ADRES,
+		                     DETAIL_ADRES,
+		                     SBSCRB_TY,
+		                     REGISTER_ID,
+		                     REGIST_DT,
+		                     USE_AT
+		                 ) VALUES (#{userId},
+		                           #{companyId},
+		                           #{userAuthTy},
+		                           #{userPw},
+		                           #{userNm},
+		                           #{brthdy},
+		                           #{email},
+		                           #{enabledYn},
+		                           #{positionCd},
+		                           #{deptCd},
+		                           #{moblphonNo1},
+		                           #{moblphonNo2},
+		                           #{moblphonNo3},
+		                           #{sexdstn},
+		                           #{bassAdres},
+		                           #{detailAdres},
+		                           #{sbscrbTy},
+		                           #{CUST_OP_ID},
+		                           NOW(),
+		                           #{useAt}
+		                ) ON DUPLICATE KEY
+		                  UPDATE
+							  	COMPANY_ID   = #{companyId},
+						        USER_AUTH_TY = #{userAuthTy},
+						        <if test="userPw != null and userPw != '' ">
+						        USER_PW      = #{userPw},
+						        </if>
+						        USER_NM      = #{userNm},
+						        BRTHDY       = #{brthdy},
+						        EMAIL        = #{email},
+						        ENABLED_YN   = #{enabledYn},
+						        POSITION_CD  = #{positionCd},
+						        DEPT_CD      = #{deptCd},
+								MOBLPHON_NO1 = #{moblphonNo1},
+								MOBLPHON_NO2 = #{moblphonNo2},
+								MOBLPHON_NO3 = #{moblphonNo3},
+								SEXDSTN      = #{sexdstn},
+								BASS_ADRES   = #{bassAdres},
+								DETAIL_ADRES = #{detailAdres},
+								UPDUSR_ID    = #{CUST_OP_ID},
+								UPDT_DT      = NOW(),
+								USE_AT       = #{useAt}
+	</update>
+
+	<!-- 사용자 삭제 -->
+	<delete id="deleteUserInfo" parameterType="String">
+		/* deleteUserInfo - superadmin User 삭제 */
+<!-- 		UPDATE TN_USER  -->
+<!-- 		   SET DELETE_AT = 'Y', -->
+<!-- 			   DELETE_DT = NOW() -->
+		 DELETE FROM TN_USER WHERE USER_ID = #{userId}
+	</delete>
+
+	<select id="getCompanyMenu"  parameterType="map"  resultType="map">
+		SELECT A.*
+			FROM TN_COMPANY_MENU A
+			 JOIN (SELECT DISTINCT * FROM (
+					SELECT B.* FROM TN_MENU B
+						WHERE B.DELETE_AT = 'N'
+						AND B.MENU_CODE != 'MENU043'
+						AND (B.TOP_MENU_CODE != 'MENU043' OR B.TOP_MENU_CODE IS NULL )
+						UNION ALL
+						/** 시스템 메뉴 강제 추가**/
+						SELECT B.* FROM TN_MENU B
+						WHERE ( (B.MENU_CODE = 'MENU055' OR B.TOP_MENU_CODE  = 'MENU055') OR B.MENU_CODE='MENU042')
+					)B
+				)B
+			  ON A.MENU_CODE = B.MENU_CODE AND B.DELETE_AT = 'N'
+		 WHERE 1=1
+		   AND COMPANY_ID = #{companyId}
+	</select>
+
+	<insert id="insertCompanyMenu" parameterType="map">
+		INSERT INTO TN_COMPANY_MENU (
+					   	  MENU_CODE
+		    		    , COMPANY_ID
+						, SORT_ORDR
+						, REGISTER_ID
+						, REGIST_DT
+		) VALUES
+	(                     #{menuCode}
+	                    , #{companyId}
+	                    , #{sortOrdr}
+	                    , #{registerId}
+	                    , NOW()
+	)
+	</insert>
+
+	<delete id="deleteCompanyMenu" parameterType="String">
+		DELETE FROM TN_COMPANY_MENU WHERE COMPANY_ID = #{companyId}
+	</delete>
+	
+	<delete id="deleteCompanyMenuGroupMenu" parameterType="map">
+		DELETE FROM TN_COMPANY_MENU_GROUP_MENU WHERE COMPANY_GROUP_ID = #{COMPANY_GROUP_ID} AND MENU_CODE = #{MENU_CODE}
+	</delete>
+	
+	<select id="getCompanyMenuGroupMenu" parameterType="map" resultType="map">
+		SELECT COMPANY_GROUP_ID
+			 , MENU_CODE 
+		  FROM TN_COMPANY_MENU_GROUP_MENU 
+		 WHERE COMPANY_GROUP_ID IN (SELECT COMPANY_GROUP_ID 
+		  							  FROM TN_COMPANY_MENU_GROUP 
+		  							 WHERE COMPANY_ID = #{companyId});
+	</select>
+	
+
+	<select id="getMenuDetail" parameterType="map"  resultType="map">
+		SELECT MENU_CODE
+		     , MENU_NM_KO
+		     , MENU_NM_EN
+		     , TOP_MENU_CODE
+		     , PARNTS_MENU_CODE
+		     , USER_MENU_URL
+		     , LINK_TY
+		     , SORT_ORDR
+		     , DATE_FORMAT(REGIST_DT,'%Y-%m-%d') AS REGIST_DT
+		     , DATE_FORMAT(UPDT_DT,'%Y-%m-%d') AS UPDT_DT
+		     , USE_AT
+	      FROM TN_MENU
+	     WHERE MENU_CODE = #{menuCode}
+	</select>
+
+	<select id="getMenuSortOrdr" parameterType="map" resultType="map">
+		SELECT SORT_ORDR FROM TN_MENU WHERE 1=1
+		<if test="topMenuCode == null or topMenuCode == ''">
+		AND TOP_MENU_CODE IS NULL OR TOP_MENU_CODE = ""
+		</if>
+		<if test="topMenuCode != null and topMenuCode != ''">
+		AND TOP_MENU_CODE = #{topMenuCode}
+		</if>
+	</select>
+
+	<update id="updateMenuDetail" parameterType="map">
+		UPDATE TN_MENU
+		<set>
+			<if test="menuNmKo != null and menuNmKo!=''">
+				MENU_NM_KO = #{menuNmKo},
+			</if>
+			<if test="menuNmEn != null and menuNmEn!=''">
+				MENU_NM_EN = #{menuNmEn},
+			</if>
+			<if test="userMenuUrl != null and userMenuUrl!=''">
+				USER_MENU_URL = #{userMenuUrl},
+			</if>
+			<if test="sortOrdr != null and sortOrdr!=''">
+				 SORT_ORDR = #{sortOrdr},
+			</if>
+
+			<if test="parentMenuCode != null and parentMenuCode!=''">
+				 PARNTS_MENU_CODE = #{parentMenuCode},
+			</if>
+			<if test="menuDp != null and menuDp!=''">
+				 MENU_DP = #{menuDp},
+			</if>
+			<choose>
+				<when test = "menuDp==0">
+					 TOP_MENU_CODE = NULL,
+				</when>
+				<when test = "menuDp>0">
+					<if test="topMenuCode != null and topMenuCode!=''">
+						 TOP_MENU_CODE = #{topMenuCode},
+					</if>
+				</when>
+			</choose>
+
+			<if test="useAt != null and useAt!=''">
+				USE_AT = #{useAt},
+			</if>
+			<if test="linkTy != null and linkTy!=''">
+				LINK_TY = #{linkTy},
+			</if>
+			UPDT_DT = NOW(),
+    	</set>
+	     WHERE MENU_CODE = #{menuCode}
+	</update>
+
+	<update id="deleteMenu" parameterType="map">
+		UPDATE TN_MENU
+			SET DELETE_AT = #{deleteAt}
+			 	,DELETE_DT = NOW()
+	     WHERE MENU_CODE = #{menuCode}
+	</update>
+
+	<select id="getMenuCode" parameterType="map" resultType="map">
+		<!-- SELECT MENU_CODE FROM TN_MENU -->
+		SELECT LPAD(SUBSTR(MAX(MENU_CODE),5)+1,7,'MENU0') as MENU_CODE FROM TN_MENU
+	</select>
+
+	<insert id="insertSystemMenu" parameterType="map">
+		INSERT INTO TN_MENU (
+				  MENU_CODE
+			 	, MENU_NM_KO
+			 	, MENU_NM_EN
+			 	, TOP_MENU_CODE
+			 	, PARNTS_MENU_CODE
+			 	, MENU_DP
+			 	, SORT_ORDR
+			 	, USER_MENU_URL
+			 	, REGISTER_ID
+			 	, REGIST_DT
+			 	, USE_AT
+			 	, LINK_TY
+	    ) VALUES
+	    (         #{menuCode}
+	            , #{menuNmKo}
+	            , #{menuNmEn}
+	            , #{topMenuCode}
+	            , #{parntsMenuCode}
+	            , #{menuDp}
+	            , #{sortOrdr}
+	            , #{userMenuUrl}
+	            , #{registerId}
+	            , NOW()
+	            , #{useAt}
+	            , #{linkTy}
+	       )
+	</insert>
+
+	<!-- company ID 생성 -->
+    <select id="getCompanyIdInfo"  parameterType="map"  resultType="String">
+    	/*getCompanyIdInfo - superadmin next companyId 조회 */
+		SELECT LPAD(MAX(SUBSTRING(COMPANY_ID, 5, 7)) + 1 , 3, 0) AS COMPANY_ID
+		  FROM CM_COMPANY
+		 WHERE COMPANY_ID LIKE 'comp%';
+	</select>
+
+	<!-- 회사 목록 조회 -->
+	<select id="selectCompanyList" parameterType="map" resultType="map">
+		SELECT cc.COMPANY_ID,
+		cc.COMPANY_NAME,
+		IFNULL(bm.botIds, '-')    AS BOT_IDS,
+		IFNULL(bm.botCnt, 0)      AS CHATBOT_CNT,
+		IFNULL(bm.UPDATER_ID, '-') AS UPDUSR_ID,
+		IFNULL(bm.UPDATED_AT, '-') AS UPDT_DT
+		FROM CM_COMPANY cc
+		LEFT JOIN (
+		SELECT b.COMPANY_ID,
+		COUNT(b.COMPANY_ID)    AS botCnt,
+		GROUP_CONCAT(b.BOT_ID) AS botIds,
+		b.UPDATER_ID,
+		b.UPDATED_AT
+		FROM BOT_MAPPING b
+		GROUP BY COMPANY_ID) AS bm
+		ON cc.COMPANY_ID = bm.COMPANY_ID
+		WHERE cc.COMPANY_NAME LIKE CONCAT('%', #{companyKeyword}, '%')
+		OR cc.COMPANY_ID LIKE CONCAT('%', #{companyKeyword}, '%')
+		GROUP BY cc.COMPANY_ID
+	</select>
+
+	<select id="selectBotMappingInfo" parameterType="map" resultType="map">
+		SELECT *
+		FROM BOT_MAPPING
+		WHERE COMPANY_ID = #{companyId}
+	</select>
+
+	<select id="selectMappedBotCnt" parameterType="map" resultType="map">
+		SELECT BOT_ID, COUNT(BOT_ID) AS botCnt
+		FROM BOT_MAPPING
+		GROUP BY BOT_ID;
+	</select>
+
+	<!-- 회사-챗봇에 배정된 챗봇 삭제 -->
+	<delete id="deleteChatbotMapping" parameterType="map">
+		DELETE FROM BOT_MAPPING
+		WHERE COMPANY_ID=#{companyId}
+	</delete>
+
+	<!-- 회사-챗봇에 배정된 챗봇 insert -->
+	<insert id="insertChatbotMapping" parameterType="map">
+		INSERT INTO BOT_MAPPING (COMPANY_ID, BOT_TYPE, BOT_ID, LANG, UPDATED_AT, UPDATER_ID)
+		VALUES
+		<foreach collection="chatbotInfoList" item="item" separator=",">
+			(#{companyId}, 'CHATBOT', #{item.chatbotId}, 1, NOW(), #{updaterId})
+		</foreach>
+	</insert>
+
+	<select id="getMenuInCompanyIdListMap" parameterType="string" resultType="map">
+		SELECT COMPANY_ID as companyId FROM TN_COMPANY_MENU WHERE MENU_CODE = #{menuCode}
+	</select>
+
+	<select id="getTopCodeYnListMap" parameterType="map" resultType="map">
+		SELECT IF(EXISTS (SELECT MENU_CODE FROM TN_COMPANY_MENU WHERE company_id = #{companyId} AND MENU_CODE = #{topMenuCode}),'Y','N') AS topMenuCodeYn
+			 , IF(EXISTS (SELECT MENU_CODE FROM TN_COMPANY_MENU WHERE company_id = #{companyId} AND MENU_CODE = #{parentMenuCode}),'Y','N') AS parentMenuCodeYn
+	</select>
+
+	<insert id="insertCompanyMenuCode" parameterType="map">
+		INSERT INTO TN_COMPANY_MENU
+		       (MENU_CODE, COMPANY_ID, SORT_ORDR, REGISTER_ID, REGIST_DT)
+		 SELECT #{menuCode}, #{companyId}, MAX(SORT_ORDR) + 1, #{userId}, NOW() FROM TN_COMPANY_MENU WHERE COMPANY_ID = #{companyId}
+	</insert>
+
+	<select id="getCompGroupMenuIds" parameterType="string" resultType="map">
+		SELECT COMPANY_GROUP_ID AS companyGroupId
+		  FROM TN_COMPANY_MENU_GROUP_MENU
+		 WHERE MENU_CODE = #{menuCode}
+	</select>
+
+	<select id="getCompGroupTopCodeYnListMap" parameterType="map" resultType="map">
+		SELECT IF(EXISTS (SELECT MENU_CODE FROM TN_COMPANY_MENU_GROUP_MENU WHERE COMPANY_GROUP_ID = #{companyGroupId} AND MENU_CODE = #{topMenuCode}),'Y','N') AS topMenuCodeYn
+			 , IF(EXISTS (SELECT MENU_CODE FROM TN_COMPANY_MENU_GROUP_MENU WHERE COMPANY_GROUP_ID = #{companyGroupId} AND MENU_CODE = #{parentMenuCode}),'Y','N') AS parentMenuCodeYn
+	</select>
+
+	<insert id="insertCompanyGroupMenuCode" parameterType="map">
+		INSERT INTO TN_COMPANY_MENU_GROUP_MENU
+			   (COMPANY_GROUP_ID, MENU_CODE, SORT_ORDR, REGISTER_ID, REGIST_DT, DELETE_AT)
+	    VALUES (#{companyGroupId}, #{menuCode}, 1 , #{userId}, NOW(), 'N')
+	</insert>
+
+	<select id="getCompanyCampaigns" parameterType="map" resultType="map">
+		SELECT COMPANY_ID AS companyId
+			 , CAMPAIGN_ID AS campaignId
+		FROM CM_COMPANY_CAMPAIGNS
+       WHERE COMPANY_ID = #{companyId}
+	</select>
+
+	<delete id="deleteCompanyCampaigns" parameterType="string">
+		DELETE
+		  FROM CM_COMPANY_CAMPAIGNS
+		 WHERE COMPANY_ID = #{companyId}
+	</delete>
+
+	<insert id="insertCompanyCampaigns" parameterType="map">
+		INSERT INTO CM_COMPANY_CAMPAIGNS
+				(COMPANY_ID, CAMPAIGN_ID)
+		VALUES
+			<foreach collection="campaignList" item="campaignList" separator=",">
+				(#{companyId}, #{campaignList})
+			</foreach>
+	</insert>
+
+</mapper>

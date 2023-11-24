@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.CustOpInfoMapper">
+	<select id="getMonitoringCount" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="int">
+		SELECT
+			count(*) as count
+		FROM CM_CONTRACT tb1
+		LEFT OUTER JOIN CM_MNTR_TRGT_MNGMT_OB_INFO tb2 ON tb1.CONTRACT_NO = tb2.CONTRACT_NO
+		LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb3 ON tb1.CUST_ID = tb3.CUST_ID
+		WHERE tb1.IS_INBOUND = 'N'
+		<if test="(campHd1 != null and campHd1 != 0) and (campHd2 != null and campHd2 != 0)">
+			AND CAMPAIGN_ID IN (#{campHd1}, #{campHd2})
+		</if>
+		<if test="schCampId != null and schCampId != ''">
+			<!-- 캠페인 ID -->
+			AND tb1.CAMPAIGN_ID = #{schCampId}
+		</if>
+		<if test="schMntType != null and schMntType != ''">
+			<!-- 모니터링 종류 -->
+			AND tb1.CAMPAIGN_ID = #{schMntType}
+		</if>
+		 <if test="schTargetDt != null and schTargetDt != '' ">
+            AND TARGET_DT BETWEEN CONCAT(#{schTargetDt}, ' 00:00') AND CONCAT(#{schTargetDt}, ' 23:59')
+        </if>
+		<if test="schAssignedYn != null and schAssignedYn != '' ">
+			AND ASSIGNED_YN = #{schAssignedYn}
+		</if>
+		<if test="schCustNm != null and schCustNm != '' ">
+			AND CUST_NM = #{schCustNm}
+		</if>
+		<if test="schCustId != null and schCustId != '' ">
+			AND tb1.CUST_ID = #{schCustId}
+		</if>
+	</select>
+
+	<!-- 상담사 배정 리스트 검색 -->
+	<select id="getMonitoringList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+		SELECT
+			tb1.CONTRACT_NO, tb1.CAMPAIGN_ID, tb4.CAMPAIGN_NM, tb1.CUST_ID, tb3.CUST_NM,
+			ASSIGNED_DT, ASSIGNED_YN, CUST_OP_NM, TARGET_DT, TARGET_YN
+		FROM CM_CONTRACT tb1
+		LEFT OUTER JOIN CM_MNTR_TRGT_MNGMT_OB_INFO tb2 ON tb1.CONTRACT_NO = tb2.CONTRACT_NO
+		LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb3 ON tb1.CUST_ID = tb3.CUST_ID
+		LEFT OUTER JOIN (SELECT CAMPAIGN_ID, CAMPAIGN_NM FROM CM_CAMPAIGN) tb4 ON tb1.CAMPAIGN_ID = tb4.CAMPAIGN_ID
+		LEFT OUTER JOIN (SELECT USER_ID, USER_NM FROM TN_USER WHERE USE_AT = 'Y' AND DELETE_AT='N') tb5 ON tb1.CUST_OP_ID = tb5.USER_ID
+		WHERE tb1.IS_INBOUND = 'N'
+		<if test="(campHd1 != null and campHd1 != 0) and (campHd2 != null and campHd2 != 0)">
+			AND CAMPAIGN_ID IN (#{campHd1}, #{campHd2})
+		</if>
+		<if test="schCampId != null and schCampId != ''">
+			<!-- 캠페인 ID -->
+			AND tb1.CAMPAIGN_ID = #{schCampId}
+		</if>
+		<if test="schMntType != null and schMntType != ''">
+			<!-- 모니터링 종류 -->
+			AND tb1.CAMPAIGN_ID = #{schMntType}
+		</if>
+		<if test="schTargetDt != null and schTargetDt != '' ">
+			AND TARGET_DT BETWEEN CONCAT(#{schTargetDt}, ' 00:00') AND CONCAT(#{schTargetDt}, ' 23:59')
+		</if>
+		<if test="schAssignedYn != null and schAssignedYn != '' ">
+			AND ASSIGNED_YN = #{schAssignedYn}
+		</if>
+		<if test="schCustNm != null and schCustNm != '' ">
+			AND CUST_NM = #{schCustNm}
+		</if>
+		<if test="schCustId != null and schCustId != '' ">
+			AND tb1.CUST_ID = #{schCustId}
+		</if>
+		<if test="sortingTarget != null and sortingTarget != '' ">
+			ORDER BY ${sortingTarget} ${direction}
+		</if>
+		limit ${startRow}, ${pageInitPerPage}
+	</select>
+
+	<select id="getOpCount" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="int">
+		SELECT count(*)
+		FROM TN_USER
+		WHERE USE_AT = 'Y' AND DELETE_AT='N'
+		<if test="schOpId != null and schOpId != '' ">
+			AND USER_ID = #{schOpId}
+		</if>
+	</select>
+
+	<select id="getOpList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO">
+		SELECT 
+			tb1.USER_ID,
+			USER_NM,
+			CUST_OP_STATUS,
+			COUNT(tb2.CUST_OP_ID) AS COUNT,
+			(SELECT CD_DESC FROM CM_COMMON_CD ch1 WHERE ch1.CODE = tb1.CUST_OP_STATUS) AS CUST_OP_STATUS_NM
+		FROM TN_USER tb1
+		LEFT OUTER JOIN (SELECT CUST_OP_ID FROM CM_CONTRACT) tb2 ON tb1.USER_ID = tb2.CUST_OP_ID
+		WHERE USE_AT = 'Y' AND DELETE_AT='N'
+		<if test="schOpId != null and schOpId != '' ">
+			AND tb1.USER_ID = #{schOpId}
+		</if>
+		GROUP BY tb1.USER_ID
+		<if test="sortingTarget2 != null and sortingTarget2 != '' ">
+			ORDER BY ${sortingTarget2} ${direction2}
+		</if>
+		limit ${startRow2}, ${pageInitPerPage2}
+	</select>
+
+	<select id="getMonitoringCountByOp" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="int">
+		SELECT
+		count(*) as count
+		FROM CM_CONTRACT
+		WHERE IS_INBOUND = 'N'
+		  AND CUST_OP_Id = #{schOpId}
+	</select>
+
+	<select id="getMonitoringListByOp" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+		SELECT /*getOpList*/
+			tb1.CONTRACT_NO, tb1.CAMPAIGN_ID, tb4.CAMPAIGN_NM, tb1.CUST_ID, tb3.CUST_NM,
+			ASSIGNED_DT, ASSIGNED_YN, TARGET_DT, CUST_OP_NM, tb6.MNT_STATUS, tb6.MNT_STATUS_NAME
+		FROM CM_CONTRACT tb1
+		LEFT OUTER JOIN CM_MNTR_TRGT_MNGMT_OB_INFO tb2 ON tb1.CONTRACT_NO = tb2.CONTRACT_NO
+		LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb3 ON tb1.CUST_ID = tb3.CUST_ID
+		LEFT OUTER JOIN (SELECT CAMPAIGN_ID, CAMPAIGN_NM FROM CM_CAMPAIGN) tb4 ON tb1.CAMPAIGN_ID = tb4.CAMPAIGN_ID
+		LEFT OUTER JOIN (SELECT USER_ID, USER_NM FROM TN_USER WHERE USE_AT = 'Y' AND DELETE_AT = 'N') tb5 ON tb1.CUST_OP_ID = tb5.USER_ID
+		LEFT OUTER JOIN (SELECT MNT_STATUS, MNT_STATUS_NAME, CALL_ID FROM CALL_HISTORY) tb6 ON tb1.LAST_CALL_ID = tb6.CALL_ID
+		WHERE IS_INBOUND = 'N'
+		  AND tb1.CUST_OP_Id = #{schOpIdDetail}
+		limit ${startRow3}, ${pageInitPerPage3}
+	</select>
+
+	<update id="setOpByRandom" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+		UPDATE CM_CONTRACT
+		SET CUST_OP_ID =
+				(SELECT  tb1.USER_ID
+				FROM TN_USER tb1
+				LEFT OUTER JOIN (SELECT CUST_OP_ID FROM CM_CONTRACT) tb2 ON tb1.USER_ID = tb2.CUST_OP_ID
+				WHERE USER_AT = 'Y' AND DELETE_AT='N'
+				GROUP BY tb1.USER_ID
+				ORDER BY COUNT(tb2.CUST_OP_ID) ASC
+				LIMIT 1)
+		WHERE
+			CONTRACT_NO = #{contractNo}
+	</update>
+
+	<update id="setAssign" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+		UPDATE CM_MNTR_TRGT_MNGMT_OB_INFO
+		SET ASSIGNED_DT = DATE_FORMAT(GETDATE(), '%Y-%m-%d'),
+			ASSIGNED_YN = 'Y'
+		WHERE
+			CONTRACT_NO = #{contractNo}
+	</update>
+
+    <update id="setOp" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+		UPDATE CM_CONTRACT
+		SET CUST_OP_ID = #{custOpId}
+		WHERE
+			CONTRACT_NO = #{contractNo}
+	</update>
+
+    <update id="cancelAssign" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+		UPDATE CM_MNTR_TRGT_MNGMT_OB_INFO
+		SET ASSIGNED_DT = null,
+			ASSIGNED_YN = 'N'
+		WHERE
+			CONTRACT_NO = #{contractNo}
+	</update>
+
+    <update id="cancelOp" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+		UPDATE CM_CONTRACT
+		SET CUST_OP_ID = null
+		WHERE
+			CONTRACT_NO = #{contractNo}
+	</update>
+</mapper>

@@ -1,0 +1,658 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ai.maum.biz.fastaicc.main.statistic.chatMapper.ChatStatisticMapper">
+
+	<select id="getTotalMessages" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT <choose>
+				<when test="lang == 1">
+					IFNULL(SUM(lang1Cnt), 0)
+				</when>
+				<when test="lang == 2">
+					IFNULL(SUM(lang2Cnt), 0)
+				</when>
+				<when test="lang == 3">
+					IFNULL(SUM(lang3Cnt), 0)
+				</when>
+				<when test="lang == 4">
+					IFNULL(SUM(lang4Cnt), 0)
+				</when>
+				<when test="lang == 100">
+					(IFNULL(SUM(lang1Cnt), 0) + IFNULL(SUM(lang2Cnt), 0) + IFNULL(SUM(lang3Cnt), 0) + IFNULL(SUM(lang4Cnt), 0))
+				</when>
+			</choose> as totalCnt
+		  FROM ChatbotLog.SessionLog
+		 WHERE 1=1
+		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND HOST = #{host}
+	</select>
+	
+	<select id="getTotalUsers" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		 SELECT COUNT(*) AS totalCnt
+		   FROM ChatbotLog.SessionLog
+		  WHERE 1=1
+		    AND HOST = #{host} 
+			AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+			AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+			<choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getTodayUsers" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT count(DISTINCT SESSION) AS totalCnt
+  		  FROM ChatbotLog.SessionLog
+ 		 WHERE 1=1 
+   		   AND HOST = #{host}
+	       AND #{endDate} = DATE_FORMAT(createdAt, '%Y-%m-%d')
+	       <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getWeakProb" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		 SELECT COUNT(*) AS totalCnt
+  		   FROM ChatbotLog.IntentLog
+  		  WHERE HOST=#{host}
+    		AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+	 		AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+	 		AND (prob <![CDATA[ <= ]]>  0.4 OR intent = 'Unknown2')
+	 		<if test="lang != '100'">
+          	AND lang=#{lang}
+           	</if>
+	</select>
+	
+	<select id="getWeakProbUtter" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		 SELECT utter AS weakUtter
+  		   FROM ChatbotLog.IntentLog
+  		  WHERE HOST=#{host}
+    		AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+	 		AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+	 		AND (prob <![CDATA[ <= ]]>  0.4 OR intent = 'Unknown2')
+	 		<if test="lang != '100'">
+          	AND lang=#{lang}
+           	</if>
+	</select>
+	
+	<select id="getTotalEmail" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT COUNT(*) AS totalCnt
+  		  FROM ChatbotLog.SessionLog
+ 		 WHERE HOST = #{host} 
+ 		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+   		   AND CHANNEL LIKE CONCAT('%', '"sendResult":true' , '%')
+   		   <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getMostIntents" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT COUNT(A.id) AS COUNT
+     		 , A.intent AS content
+  		  FROM ChatbotLog.IntentLog A
+ 		 WHERE A.HOST = #{host}
+   		   AND A.intent != '처음으로'
+   		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+   		   <if test="lang != '100'">
+           AND A.lang=#{lang}
+           </if>
+		 GROUP BY A.intent
+		 ORDER BY COUNT(A.id) DESC LIMIT 10
+	</select>
+	
+	<select id="getMostIntentsAll" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT COUNT(A.id) AS COUNT 
+             , A.intent AS content
+  		  FROM ChatbotLog.IntentLog A
+		 WHERE A.HOST=#{host}
+   		   AND A.intent != '처음으로'
+  		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+ 		   <if test="lang != '100'">
+           AND A.lang=#{lang}
+           </if>
+ 		 GROUP BY A.intent
+ 		 ORDER BY COUNT(A.id) DESC
+	</select>
+	
+	<select id="getUttersFromIntent" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT COUNT(A.id) AS COUNT
+		     , A.utter AS content
+		  FROM ChatbotLog.IntentLog A
+		 WHERE A.intent = #{intent}
+		   AND A.HOST = #{host}
+		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+		   <if test="lang != '100'">
+           AND A.lang=#{lang}
+           </if> 
+		 GROUP BY A.utter
+		 ORDER BY COUNT DESC
+	</select>
+	
+	<select id="getAllUttersFromIntent" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT T.utter
+			 , T.intent
+			 , T.utterCnt AS utterCnt
+	         , T.intentCnt
+	         , COUNT(1) OVER(partition BY intent)  AS mergeCnt
+		  FROM (
+				 SELECT utter
+    	  			  , intent
+    	  			  , COUNT(1) AS utterCnt
+				      , SUM(COUNT(1)) OVER(partition BY intent)  AS intentCnt
+	  			   FROM ChatbotLog.IntentLog
+			      WHERE 1=1
+	   				AND host = #{host}
+	   				AND intent != '처음으로'
+	   				<if test="lang != '100'">
+           			AND lang = #{lang}
+           			</if>
+	   				AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+		   			AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createDate, '%Y-%m-%d')
+			   GROUP BY intent,utter
+			   ) T
+	  ORDER BY T.intentCnt DESC ,T.intent DESC  ,T.utter ASC
+	</select>
+	
+	
+	
+	
+	<select id="getTotalMsgPerHour" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+			SELECT HOUR(createdAt) as hour
+				 , <choose>
+					   <when test="lang == 1">
+					   	   IFNULL(SUM(lang1Cnt), 0)
+					   </when>
+					   <when test="lang == 2">
+					   	   IFNULL(SUM(lang2Cnt), 0)
+					   </when>
+					   <when test="lang == 3">
+					   	   IFNULL(SUM(lang3Cnt), 0)
+					   </when>
+					   <when test="lang == 4">
+					   	   IFNULL(SUM(lang4Cnt), 0)
+					   </when>
+					   <when test="lang == 100">
+					   	   (IFNULL(SUM(lang1Cnt), 0) + IFNULL(SUM(lang2Cnt), 0) + IFNULL(SUM(lang3Cnt), 0) + IFNULL(SUM(lang4Cnt), 0))
+					   </when>
+			       </choose> as count
+        	  FROM ChatbotLog.SessionLog
+             WHERE HOUR(createdAt) is not null
+               AND DATE_FORMAT(createdAt, '%Y-%m-%d') <![CDATA[ >= ]]> #{startDate}
+               AND DATE_FORMAT(createdAt, '%Y-%m-%d') <![CDATA[ <= ]]> #{endDate}
+               AND HOST=#{host} 
+        	   <choose>
+				   <when test="lang == 1">
+					   AND lang1Cnt IS NOT NULL
+					   AND lang1Cnt != 0
+				   </when>
+				   <when test="lang == 2">
+					   AND lang2Cnt IS NOT NULL
+					   AND lang2Cnt != 0
+				   </when>
+				   <when test="lang == 3">
+				   	AND lang3Cnt IS NOT NULL
+				   	AND lang3Cnt != 0
+				   </when>
+				   <when test="lang == 4">
+					   AND lang4Cnt IS NOT NULL
+					   AND lang4Cnt != 0
+				   </when>
+			   </choose>
+          GROUP BY HOUR(createdAt)
+          ORDER BY hour
+	</select>
+	
+	<select id="getTotalUserPerHour" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+			SELECT HOUR(createdAt) as hour
+				 , COUNT(createdAt) as count
+        	  FROM ChatbotLog.SessionLog
+             WHERE HOUR(createdAt) is not null
+               AND DATE_FORMAT(createdAt, '%Y-%m-%d') <![CDATA[ >= ]]> #{startDate}
+               AND DATE_FORMAT(createdAt, '%Y-%m-%d') <![CDATA[ <= ]]> #{endDate}
+               AND HOST=#{host} 
+        	   <choose>
+				   <when test="lang == 1">
+				   	   AND lang1Cnt IS NOT NULL
+				   	   AND lang1Cnt != 0
+				   </when>
+				   <when test="lang == 2">
+				   	   AND lang2Cnt IS NOT NULL
+				   	   AND lang2Cnt != 0
+				   </when>
+				   <when test="lang == 3">
+				   	   AND lang3Cnt IS NOT NULL
+				   	   AND lang3Cnt != 0
+				   </when>
+				   <when test="lang == 4">
+				   	   AND lang4Cnt IS NOT NULL
+				   	   AND lang4Cnt != 0
+				   </when>
+			   </choose>
+          GROUP BY HOUR(createdAt)
+          ORDER BY hour
+	</select>
+	
+	<select id="getTotalUserMaxAvgPerHour" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT IFNULL(MAX(COUNT),0) AS maxCnt
+		     , IFNULL(AVG(COUNT),0) AS avgCnt
+		  FROM (
+		SELECT HOUR(createDate) as hour
+				 , COUNT(createDate) as count 
+			  FROM (SELECT session
+				  	     , MIN(createdAt) as createDate
+                      FROM ChatbotLog.SessionLog
+                     WHERE DATE_FORMAT(createdAt, '%Y-%m-%d') <![CDATA[ >= ]]> #{startDate}
+                       AND DATE_FORMAT(createdAt, '%Y-%m-%d') <![CDATA[ <= ]]> #{endDate}
+                	   AND HOST= #{host}
+                	   <choose>
+						   <when test="lang == 1">
+							   AND lang1Cnt IS NOT NULL
+							   AND lang1Cnt != 0
+						   </when>
+						   <when test="lang == 2">
+							   AND lang2Cnt IS NOT NULL
+							   AND lang2Cnt != 0
+						   </when>
+						   <when test="lang == 3">
+							   AND lang3Cnt IS NOT NULL
+							   AND lang3Cnt != 0
+						   </when>
+						   <when test="lang == 4">
+							   AND lang4Cnt IS NOT NULL
+							   AND lang4Cnt != 0
+						   </when>
+					   </choose>
+	            	GROUP BY session) a
+              WHERE HOUR(createDate) IS NOT NULL
+        	  GROUP BY HOUR(createDate) ) T
+	</select>
+	
+	<select id="getDeviceCount" parameterType="map" resultType="map">
+		SELECT count(DISTINCT SESSION) AS totalCnt
+ 		  FROM ChatbotLog.SessionLog
+ 		 WHERE 1=1
+		   AND HOST = #{host}
+		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND CHANNEL LIKE CONCAT('%', #{channel} ,'%')
+		   <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getUserCountry" parameterType="map" resultType="map">
+		SELECT DISTINCT SESSION
+     		 , CHANNEL AS content
+  		  FROM ChatbotLog.SessionLog
+ 		 WHERE 1=1
+		   AND HOST = #{host}
+		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND CHANNEL LIKE CONCAT('%','country','%')
+		   <choose>
+				<when test="lang == 1">
+					AND lang1Cnt IS NOT NULL
+					AND lang1Cnt != 0
+				</when>
+				<when test="lang == 2">
+					AND lang2Cnt IS NOT NULL
+					AND lang2Cnt != 0
+				</when>
+				<when test="lang == 3">
+					AND lang3Cnt IS NOT NULL
+					AND lang3Cnt != 0
+				</when>
+				<when test="lang == 4">
+					AND lang4Cnt IS NOT NULL
+					AND lang4Cnt != 0
+				</when>
+			</choose>
+	</select>
+	
+	<select id="getObStatsChatList" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+		SELECT /*getObStatsChatList - 채팅상담 이력 리스트*/
+			   <choose>
+			   		<when test="searchTime == 'startTime'">
+			   			<if test="sortOrder == 'asc'">
+						   ROW_NUMBER() OVER (ORDER BY startDate ASC) AS RNUM
+			   			</if>
+			   			<if test="sortOrder == 'desc'">
+						   ROW_NUMBER() OVER (ORDER BY startDate DESC) AS RNUM
+			   			</if>
+						 , IFNULL(DATE_FORMAT(T.startDate, '%Y-%m-%d'), '-') AS daily
+			   		</when>
+			   		<when test="searchTime == 'endTime'">
+			   			<if test="sortOrder == 'asc'">
+						   ROW_NUMBER() OVER (ORDER BY endDate ASC) AS RNUM
+						</if>
+						<if test="sortOrder == 'desc'">
+						   ROW_NUMBER() OVER (ORDER BY endDate DESC) AS RNUM
+						</if>
+						 , IFNULL(DATE_FORMAT(T.endDate, '%Y-%m-%d'), '-') AS daily
+			   		</when>
+			   </choose>
+			 , T.*
+		  FROM (
+		SELECT DISTINCT A.session
+		     , A.Id
+			 , A.host
+			 , A.channel
+			 , IFNULL(DATE_FORMAT(A.createdAt, '%Y-%m-%d %H:%i:%s'), '-') AS startDate
+			 , IFNULL(DATE_FORMAT(A.updatedAt, '%Y-%m-%d %H:%i:%s'), '-') AS endDate
+			 , IFNULL(B.NAME,'-') AS chatbotNm
+			 , (IFNULL(A.botCnt, 0) + IFNULL(A.consultantCnt,0)) AS totalChatCnt
+			 , IFNULL(A.botCnt, 0) AS botChatCnt
+			 , IFNULL(A.consultantCnt, 0) AS consultantCnt
+			 , IFNULL(A.consultantId, '-') AS consultant
+	      FROM ChatbotLog.SessionLog A
+		  LEFT OUTER JOIN Chatbot.Account B
+	 	    ON A.HOST = B.NO
+	 	 WHERE 1=1
+ 	  	   AND A.host IN
+	 	  <foreach collection="botIdArr" item="botIdArr" index="index" open="(" close=")" separator=",">
+	 	  		#{botIdArr}
+	 	  </foreach>
+	      ) AS T
+	      WHERE 1=1
+	      <if test="consultant != null and consultant != ''">
+    		AND T.consultant LIKE CONCAT('%', #{consultant} , '%')
+    	  </if>
+    	  <if test="totalChatCnt != null and totalChatCnt != ''">
+    		AND T.totalChatCnt = #{totalChatCnt}
+    	  </if>
+	      <choose>
+	      	<when test="searchTime == 'startTime'">
+	      		<if test="fromDate != null and fromDate != '' ">
+	        	  <choose>
+					  <when test="dailyChk == 'true'">
+						  AND DATE_FORMAT(T.startDate, '%Y-%m-%d') <![CDATA[ >= ]]> #{fromDate}
+					  </when>
+					  <otherwise>
+						  AND DATE_FORMAT(T.startDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ >= ]]> #{fromDate}
+					  </otherwise>
+				  </choose>
+	      		</if>
+	      		<if test="toDate != null and toDate != '' ">
+					<choose>
+						<when test="dailyChk == 'true'">
+							AND DATE_FORMAT(T.startDate, '%Y-%m-%d') <![CDATA[ <= ]]> #{toDate}
+						</when>
+						<otherwise>
+							AND DATE_FORMAT(T.startDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ <= ]]> #{toDate}
+						</otherwise>
+					</choose>
+	      		</if>
+	      		<choose>
+					<when test="dailyChk == 'true'">
+						<choose>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'asc' ">
+								ORDER BY daily ASC, startDate ASC
+							</when>
+							<when test="groupSortOrder == 'desc' and sortOrder == 'asc' ">
+								ORDER BY daily DESC, startDate ASC
+							</when>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'desc' ">
+								ORDER BY daily ASC, startDate DESC
+							</when>
+							<otherwise>
+								ORDER BY daily DESC, startDate DESC
+							</otherwise>
+						</choose>
+					</when>
+					<otherwise>
+						<choose>
+							<when test="sortOrder == 'asc' ">
+								ORDER BY startDate ASC
+							</when>
+							<otherwise>
+								ORDER BY startDate DESC
+							</otherwise>
+						</choose>
+					</otherwise>
+		  		</choose>
+	      	</when>
+	      	<when test="searchTime == 'endTime'">
+	      		<if test="fromDate != null and fromDate != '' ">
+					<choose>
+						<when test="dailyChk == 'true'">
+							AND DATE_FORMAT(T.endDate, '%Y-%m-%d') <![CDATA[ >= ]]> #{fromDate}
+						</when>
+						<otherwise>
+							AND DATE_FORMAT(T.endDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ >= ]]> #{fromDate}
+						</otherwise>
+					</choose>
+	      		</if>
+	      		<if test="toDate != null and toDate != '' ">
+					<choose>
+						<when test="dailyChk == 'true'">
+							AND DATE_FORMAT(T.endDate, '%Y-%m-%d') <![CDATA[ <= ]]> #{toDate}
+						</when>
+						<otherwise>
+							AND DATE_FORMAT(T.endDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ <= ]]> #{toDate}
+						</otherwise>
+					</choose>
+	      		</if>
+	      		<choose>
+					<when test="dailyChk == 'true'">
+						<choose>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'asc' ">
+								ORDER BY daily ASC, endDate ASC
+							</when>
+							<when test="groupSortOrder == 'desc' and sortOrder == 'asc' ">
+								ORDER BY daily DESC, endDate ASC
+							</when>
+							<when test="groupSortOrder == 'asc' and sortOrder == 'desc' ">
+								ORDER BY daily ASC, endDate DESC
+							</when>
+							<otherwise>
+								ORDER BY daily DESC, endDate DESC
+							</otherwise>
+						</choose>
+					</when>
+					<otherwise>
+						<choose>
+							<when test="sortOrder == 'asc' ">
+								ORDER BY endDate ASC
+							</when>
+							<otherwise>
+								ORDER BY endDate DESC
+							</otherwise>
+						</choose>
+					</otherwise>
+		  		</choose>
+	      	</when>
+	      </choose>
+	      <if test="offset != null and rowNum != null and rowNum != 0">
+			OFFSET #{offset, jdbcType=INTEGER} ROWS FETCH NEXT #{rowNum, jdbcType=INTEGER} ROWS ONLY
+		  </if>
+		  
+		  
+	</select>
+
+	<select id="getObStatsChatListCount" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="int">
+		SELECT COUNT(*) AS totalCount
+		  FROM (
+	 			 SELECT DISTINCT A.SESSION
+		  			  , IFNULL(B.NAME,'-') AS chatbotNm
+		  			  , (IFNULL(A.botCnt, 0) + IFNULL(A.consultantCnt,0)) AS totalChatCnt
+		  			  , IFNULL(A.consultantId, '-') as consultant
+		  			  , IFNULL(DATE_FORMAT(A.createdAt, '%Y-%m-%d %H:%i:%s'), '-') AS startDate
+				  	  , IFNULL(DATE_FORMAT(A.updatedAt, '%Y-%m-%d %H:%i:%s'), '-') AS endDate
+	  			   FROM ChatbotLog.SessionLog A
+	  	LEFT OUTER JOIN Chatbot.Account B
+	 	 			 ON A.HOST = B.NO
+	 	 	   WHERE 1=1
+ 	  	   	   AND A.host in
+		 	   <foreach collection="botIdArr" item="botIdArr" index="index" open="(" close=")" separator=",">
+		 	  		#{botIdArr}
+		 	   </foreach>
+	 		   ) T
+	 		   WHERE 1=1
+	      	   <if test="totalChatCnt != null and totalChatCnt != ''">
+	      		 AND T.totalChatCnt = #{totalChatCnt}
+	      	   </if>
+		       <if test="consultant != null and consultant != ''">
+	      		 AND T.consultant LIKE CONCAT('%', #{consultant} , '%')
+	      	   </if>
+	 		   <choose>
+	 		   		<when test="searchTime == 'startTime'">
+	 		   			<if test="fromDate != null and fromDate != '' ">
+							<choose>
+								<when test="dailyChk == 'true'">
+									AND DATE_FORMAT(T.startDate, '%Y-%m-%d') <![CDATA[ >= ]]> #{fromDate}
+								</when>
+								<otherwise>
+									AND DATE_FORMAT(T.startDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ >= ]]> #{fromDate}
+								</otherwise>
+							</choose>
+			   			</if>
+			   			<if test="toDate != null and toDate != '' ">
+							<choose>
+								<when test="dailyChk == 'true'">
+									AND DATE_FORMAT(T.startDate, '%Y-%m-%d') <![CDATA[ <= ]]> #{toDate}
+								</when>
+								<otherwise>
+									AND DATE_FORMAT(T.startDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ <= ]]> #{toDate}
+								</otherwise>
+							</choose>
+			   			</if>
+	 		   		</when>
+	 		   		<when test="searchTime == 'endTime'">
+	 		   			<if test="fromDate != null and fromDate != '' ">
+							<choose>
+								<when test="dailyChk == 'true'">
+									AND DATE_FORMAT(T.endDate, '%Y-%m-%d') <![CDATA[ >= ]]> #{fromDate}
+								</when>
+								<otherwise>
+									AND DATE_FORMAT(T.endDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ >= ]]> #{fromDate}
+								</otherwise>
+							</choose>
+			   			</if>
+			   			<if test="toDate != null and toDate != '' ">
+							<choose>
+								<when test="dailyChk == 'true'">
+									AND DATE_FORMAT(T.endDate, '%Y-%m-%d') <![CDATA[ <= ]]> #{toDate}
+								</when>
+								<otherwise>
+									AND DATE_FORMAT(T.endDate, '%Y-%m-%d %H:%i:%s') <![CDATA[ <= ]]> #{toDate}
+								</otherwise>
+							</choose>
+			   			</if>
+	 		   		</when>
+	 		   </choose>
+	</select>
+
+	<select id="getDetailChat" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
+		SELECT IFNULL(B.NAME, '-') AS chatbotNm
+			 , A.answer
+			 , A.utter
+			 , DATE_FORMAT(A.createDate, '%Y-%m-%d') AS createDate
+		  FROM ChatbotLog.IntentLog A
+	LEFT OUTER JOIN Chatbot.Account B
+	  ON A.host = B.NO
+		 WHERE A.sessionId = #{sessionId}
+		   AND A.host = #{host}
+		 ORDER BY createDate ASC
+	</select>
+	
+	<update id="updateEmailInfo" parameterType="map">
+		UPDATE Chatbot.Account
+		SET Email=#{email}
+		WHERE No=#{host}
+	</update>
+	
+	<select id="getAccountList" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO">
+		select No as No
+		     , Name as Name 
+		  from Chatbot.Account
+	</select>
+	
+	<update id="updateChatbotAvailable" parameterType="map">
+		UPDATE Chatbot.Account
+		   SET Available = #{available}
+	     WHERE No = #{botId}
+	</update>
+	
+	<select id="getLinkCount" parameterType="map" resultType="map">
+	    SELECT T.href
+	         , T.host
+	         , T.lang
+	         , T.linkCnt
+	      FROM (
+		SELECT DISTINCT href
+     		 , host
+     		 , lang
+     		 , COUNT(1) OVER (partition BY href) AS linkCnt
+   		  FROM ChatbotLog.LinkLog
+ 		 WHERE 1=1 
+   		   AND host = #{host}
+	  	   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		   AND lang = #{lang}
+		   ) T ORDER BY T.linkCnt DESC;
+	</select>
+	
+</mapper>

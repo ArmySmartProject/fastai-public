@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.common.mapper.MonitoringTargetUploadMapper">
+
+    <!-- 모니터링 대상 업로드 데이터 COUNT 조회 -->
+    <select id="getMonitoringTargetUploadCount" resultType="int">
+		SELECT
+	      COUNT(*)
+		FROM CM_CONTRACT tb1
+        LEFT OUTER JOIN CM_MNTR_TRGT_MNGMT_OB_INFO tb2 ON tb1.CONTRACT_NO = tb2.CONTRACT_NO
+        LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb3 ON tb1.CUST_ID = tb3.CUST_ID
+        WHERE tb1.IS_INBOUND = 'N'
+        <if test="(campHd1 != null and campHd1 != '') and (campHd2 != null and campHd2 != '')">
+            <!-- 캠페인 ID -->
+            AND tb1.CAMPAIGN_ID IN (#{campHd1}, #{campHd2})
+        </if>
+        <if test="schCampId != null and schCampId != ''">
+            <!-- 캠페인 ID -->
+            AND tb1.CAMPAIGN_ID = #{schCampId}
+        </if>
+        <if test="schMntType != null and schMntType != ''">
+            <!-- 모니터링 종류 -->
+            AND tb1.CAMPAIGN_ID = #{schMntType}
+        </if>
+        <if test="schOpNm != null and schOpNm != ''">
+            <!-- 상담사명(상담사ID) -->
+            AND tb1.CUST_OP_ID = #{schOpNm}
+        </if>
+        <if test="schTargetDt != null and schTargetDt != '' ">
+            <!-- 대상일자 -->
+            AND TARGET_DT BETWEEN CONCAT(#{schTargetDt}, ' 00:00') AND CONCAT(#{schTargetDt}, ' 23:59')
+        </if>
+        <if test="schCustNm != null and schCustNm != '' ">
+            <!-- 고객명 -->
+            AND CUST_NM like CONCAT('%', #{schCustNm}, '%')
+        </if>
+        <if test="schCustId != null and schCustId != '' ">
+            <!-- 고객관리번호 -->
+            AND tb1.CUST_ID = ${schCustId}
+        </if>
+        <if test="schCustTelNo != null and schCustTelNo != '' ">
+            <!-- 전화번호 -->
+            AND CUST_TEL_NO = ${schCustTelNo}
+        </if>
+        <if test="schTargetYn != null and schTargetYn != '' ">
+            AND TARGET_YN = #{schTargetYn}
+        </if>
+	</select>
+
+    <!-- 모니터링 대상 업로드 리스트 검색 -->
+    <select id="getMonitoringTargetUploadList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+        SELECT tb1.CONTRACT_NO, tb1.CAMPAIGN_ID, tb3.CAMPAIGN_NM, tb1.CUST_ID, tb4.CUST_NM, tb4.CUST_TEL_NO as TEL_NO, tb2.TARGET_DT, tb2.TARGET_YN, tb1.CUST_OP_ID, tb5.CUST_OP_NM
+        FROM CM_CONTRACT tb1
+        LEFT OUTER JOIN CM_MNTR_TRGT_MNGMT_OB_INFO tb2 ON tb1.CONTRACT_NO = tb2.CONTRACT_NO
+        LEFT OUTER JOIN (SELECT CAMPAIGN_ID, CAMPAIGN_NM FROM CM_CAMPAIGN) tb3 ON tb1.CAMPAIGN_ID = tb3.CAMPAIGN_ID
+        LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb4 ON tb1.CUST_ID = tb4.CUST_ID
+        LEFT OUTER JOIN (SELECT USER_ID, USER_NM FROM TN_USER WHERE USE_AT = 'Y' AND DELETE_AT='N') tb5 ON tb1.CUST_OP_ID = tb5.USER_ID
+
+        WHERE tb1.IS_INBOUND = 'N'
+        <if test="(campHd1 != null and campHd1 != '') and (campHd2 != null and campHd2 != '')">
+            <!-- 캠페인 ID -->
+            AND tb1.CAMPAIGN_ID IN (#{campHd1}, #{campHd2})
+        </if>
+        <if test="schCampId != null and schCampId != ''">
+            <!-- 캠페인 ID -->
+            AND tb1.CAMPAIGN_ID = #{schCampId}
+        </if>
+        <if test="schMntType != null and schMntType != ''">
+            <!-- 모니터링 종류 -->
+            AND tb1.CAMPAIGN_ID = #{schMntType}
+        </if>
+        <if test="schOpNm != null and schOpNm != ''">
+            <!-- 상담사명(상담사ID) -->
+            AND tb1.CUST_OP_ID = #{schOpNm}
+        </if>
+        <if test="schTargetDt != null and schTargetDt != '' ">
+            <!-- 대상일자 -->
+            AND TARGET_DT BETWEEN CONCAT(#{schTargetDt}, ' 00:00') AND CONCAT(#{schTargetDt}, ' 23:59')
+        </if>
+        <if test="schCustNm != null and schCustNm != '' ">
+            <!-- 고객명 -->
+            AND CUST_NM like CONCAT('%', #{schCustNm}, '%')
+        </if>
+        <if test="schCustId != null and schCustId != '' ">
+            <!-- 고객관리번호 -->
+            AND tb1.CUST_ID = ${schCustId}
+        </if>
+        <if test="schCustTelNo != null and schCustTelNo != '' ">
+            <!-- 전화번호 -->
+            AND CUST_TEL_NO = ${schCustTelNo}
+        </if>
+        <if test="schTargetYn != null and schTargetYn != '' ">
+            AND TARGET_YN = #{schTargetYn}
+        </if>
+        <if test="sortingTarget != null and sortingTarget != '' ">
+            ORDER BY ${sortingTarget} ${direction}
+        </if>
+        <if test="sortingTarget == null or sortingTarget == '' ">
+            ORDER BY CONTRACT_NO DESC
+        </if>
+        LIMIT ${startRow}, ${pageInitPerPage}
+    </select>
+
+    <select id="getExcelTmpList" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+        select /* getExcelTmpList */
+            CAMPAIGN_ID, CUST_ID, CUST_OP_ID, TARGET_DT
+        from CM_EXCEL_UPLD_TMP
+    </select>
+
+    <select id="getExcelTmpCount" resultType="int">
+        select /*getExcelTmpCount*/
+            count(*)
+        from CM_EXCEL_UPLD_TMP
+    </select>
+
+    <insert id="uploadExcelTmp" parameterType="hashMap">
+        INSERT INTO	/*uploadExcel*/
+        CM_EXCEL_UPLD_TMP
+        ( CAMPAIGN_ID, CUST_ID, CUST_OP_ID, TARGET_DT )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+                #{item.A}, <!-- CAMPAIGN_ID -->
+                #{item.B}, <!-- CUST_ID -->
+                #{item.C}, <!-- CUST_OP_ID -->
+                #{item.D}  <!-- TARGET_DT -->
+            )
+        </foreach>
+    </insert>
+
+    <delete id="resetExcelTmp">
+        TRUNCATE /*resetExcelTmp*/
+            CM_EXCEL_UPLD_TMP;
+    </delete>
+
+    <insert id="uploadTarget" parameterType="list" useGeneratedKeys="true" keyProperty="contractNo" keyColumn="CONTRACT_NO">
+        INSERT INTO	/* uploadTarget */
+        CM_CONTRACT
+        ( CAMPAIGN_ID, CUST_ID, TEL_NO, CUST_OP_ID )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+                #{item.campaignId},
+                #{item.custId},
+                (SELECT CUST_TEL_NO FROM CUST_BASE_INFO WHERE CUST_ID = #{item.custId}),
+                #{item.custOpId}
+            )
+        </foreach>
+    </insert>
+
+    <insert id="uploadTargetOB">
+        INSERT INTO	/* uploadTarget */
+        CM_MNTR_TRGT_MNGMT_OB_INFO ( CONTRACT_NO, TARGET_DT, TARGET_YN )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+                #{item.contractNo},
+                #{item.targetDt},
+                CASE WHEN isnull(#{item.targetDt}) then 'N' ELSE 'Y' END
+            )
+        </foreach>
+    </insert>
+
+
+    <!-- 모니터링 대상 업로드 - 1 row 수정된 내용 저장 -->
+    <update id="updateUploadTarget" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+        UPDATE /* doModifiedRow */
+            CM_CONTRACT
+        SET CAMPAIGN_ID = #{modifyingMntType},
+            CUST_ID = #{modifyingCustNo}
+        WHERE CONTRACT_NO = #{cno}
+    </update>
+
+    <!-- 모니터링 대상 업로드 - 1 row 수정된 내용 저장 -->
+    <update id="updateUploadTargetOB" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+        UPDATE /* doModifiedRow */
+            CM_MNTR_TRGT_MNGMT_OB_INFO
+        SET TARGET_DT = CASE WHEN #{modifyingTargetDate} = '' THEN null ELSE #{modifyingTargetDate} END,
+            TARGET_YN = CASE WHEN isnull(#{modifyingTargetDate}) then 'N' ELSE 'Y' END
+        WHERE CONTRACT_NO = #{cno}
+    </update>
+
+    <!-- 모니터링 대상 업로드 - 1 row 추가된 내용 저장 -->
+    <insert id="addUploadTarget" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" useGeneratedKeys="true" keyProperty="contractNo" keyColumn="CONTRACT_NO">
+        INSERT INTO	/* addUploadTarget */
+            CM_CONTRACT ( CAMPAIGN_ID, CUST_ID, TEL_NO )
+        VALUES (
+            #{modifyingMntType},
+            #{modifyingCustNo},
+            (SELECT CUST_TEL_NO FROM CUST_BASE_INFO WHERE CUST_ID = #{modifyingCustNo})
+        )
+    </insert>
+
+    <!-- 모니터링 대상 업로드 - 1 row 추가된 내용 저장 -->
+    <insert id="addUploadTargetOB" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+        INSERT INTO	/* addUploadTargetOB */
+          CM_MNTR_TRGT_MNGMT_OB_INFO ( CONTRACT_NO, TARGET_DT, TARGET_YN )
+        VALUES (
+            #{contractNo},
+            #{modifyingTargetDate},
+            CASE WHEN isnull(#{modifyingTargetDate}) then 'N' ELSE 'Y' END
+        )
+    </insert>
+</mapper>
+

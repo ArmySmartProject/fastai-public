@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.autocall.mapper.AutoCallMapper">
+
+	<select id="selectAutoCallCondition" parameterType="map" resultType="map">
+		/* *BATCH_LOG*  */
+		select ID
+		    , 'Y' AS batch_yn
+		from AUTO_CALL_CONDITION C
+		where 1 = 1
+		  and USE_YN = 'Y'
+		  and ACTIVE_STATUS = 1
+		  and (START_DTM <![CDATA[<=]]> date_format(#{currentTime}, '%Y-%m-%d') and END_DTM <![CDATA[>=]]> date_format(#{currentTime}, '%Y-%m-%d'))
+		  and (WEEK_DAY LIKE CONCAT('%', dayofweek(#{currentTime}),'%'))
+		  and date_format(DISPATCH_TIME, '%H:%i') = CONCAT(date_format(#{currentTime}, '%H'), ':', date_format(#{currentTime}, '%i') div 10, '0')
+	</select>
+	
+	<select id="selectMsgTalkCondition" parameterType="map" resultType="map">
+		/* *BATCH_LOG*  */
+		select ID
+		    , 'Y' AS batch_yn
+		from AUTO_CALL_CONDITION C
+		where 1 = 1
+		  and USE_YN = 'Y'
+		  and ACTIVE_STATUS = 1
+		  and (START_DTM <![CDATA[<=]]> date_format(#{currentTime}, '%Y-%m-%d') and END_DTM <![CDATA[>=]]> date_format(#{currentTime}, '%Y-%m-%d'))
+		  and (WEEK_DAY LIKE CONCAT('%', dayofweek(#{currentTime}),'%'))
+	</select>
+
+	<insert id="insertConditionHistory" parameterType="map" useGeneratedKeys="true" keyProperty="historyId">
+		/* *BATCH_LOG*  */
+        insert into AUTO_CALL_CD_HISTORY
+          (CD_NAME, START_DTM, END_DTM, CREATOR, CREATE_DTM, WEEK_DAY, DISPATCH_TIME, CD_DESC, CALL_TIME, AUTO_CALL_CD_CUSTOM_IDS)
+        select CD_NAME, START_DTM, END_DTM, CREATOR, CREATE_DTM, WEEK_DAY, DISPATCH_TIME, CD_DESC, sysdate(),
+          (select group_concat(cast(ID as char(10)) separator ',') from AUTO_CALL_CONDITION_CUSTOM b where b.AUTO_CALL_CONDITION_ID = #{conditionId})
+        from AUTO_CALL_CONDITION where id = #{conditionId}
+	</insert>
+
+	<insert id="insertAutoCallHistory" parameterType="map">
+		/* *BATCH_LOG*  */
+		insert into AUTO_CALL_HISTORY (CD_HISTORY_ID, CONTRACT_NO, CAMPAIGN_ID, VALID_YN)
+		VALUES (#{cdHistoryId}, #{contractNo}, #{campaignId}, #{validYn})
+	</insert>
+
+	<insert id="insertObCallQueue" parameterType="map">
+		INSERT INTO OB_CALL_QUEUE (CONTRACT_NO, CAMPAIGN_ID, STATUS)
+		VALUES
+		<foreach collection="obCallQueueInfoList" item="obCallQueueInfo" index="index" separator=",">
+			(#{obCallQueueInfo.contractNo},#{obCallQueueInfo.campaignId}, 'N')
+		</foreach>
+
+	</insert>
+
+	<insert id="saveAutoCallHistory" parameterType="map">
+		INSERT INTO AUTO_CALL_HISTORY (CD_HISTORY_ID, CONTRACT_NO, CAMPAIGN_ID, VALID_YN)
+		VALUES
+		<foreach collection="autoCallHistoryList" item="autoCallHistory" index="index" separator=",">
+			(#{autoCallHistory.cdHistoryId}, #{autoCallHistory.contractNo}, #{autoCallHistory.campaignId}, #{autoCallHistory.validYn})
+		</foreach>
+
+	</insert>
+</mapper>

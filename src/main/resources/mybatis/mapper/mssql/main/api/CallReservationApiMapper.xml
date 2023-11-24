@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ai.maum.biz.fastaicc.main.api.mapper.CallReservationApiMapper">
+
+<select id="getCampaignId" parameterType="map" resultType="Integer">
+	/* *BATCH_LOG*  */
+	SELECT CAMPAIGN_ID
+	     , 'Y' AS batch_yn
+	  FROM AUTO_CALL_CONDITION
+	 WHERE ID = #{autoCallConditionId}
+</select>
+
+<select id="getDataValue" parameterType="map" resultType="ai.maum.biz.fastaicc.main.api.domain.CallReservationApiVO">
+	/* *BATCH_LOG*  */
+	SELECT CUST_DATA_CLASS_ID
+	     , DATA_VALUE 
+	     , 'Y' AS batch_yn
+	  FROM AUTO_CALL_CONDITION_CUSTOM 
+	 WHERE AUTO_CALL_CONDITION_ID = #{autoCallConditionId}
+	   AND USE_YN = 'Y'
+</select>
+
+<select id="getCustContractNos" parameterType="map" resultType="map">
+		/* getReservationCustList and getCustContrachNos 예야콜 고객데이터 및 contract_no 조회  *BATCH_LOG* */
+		SELECT ROW_NUMBER() OVER( ORDER BY A.cust_id) AS layer_no 
+			 , A.CUST_ID
+		     , A.CAMPAIGN_ID
+		     , A.CUST_NM AS custNm
+			 , A.CUST_TEL_NO AS custTelNo
+			 , A.CUST_DATA
+			 <if test="contractNum != '' and contractNum != null">
+			  , ISNULL(JSON_VALUE(A.CUST_DATA, #{contractNum}),'-') as contractNum
+			 </if>
+			  <if test="custDataList1 != null">
+				 <foreach collection="custDataList1" item="map" index="index">
+				 , ISNULL(JSON_VALUE(A.CUST_DATA, #{map.keyName}),'-') AS layer_data${index+1}
+				 </foreach>
+			 </if>
+			 , B.CONTRACT_NO as contractNo
+			 , C.SCENARIO_RESULT as scenarioResult
+			 , 'Y' AS batch_yn
+	  	  FROM CUST_INFO A
+	  	  LEFT OUTER JOIN CM_CONTRACT B
+	  	    ON A.CUST_ID = B.CUST_ID AND A.CAMPAIGN_ID = B.CAMPAIGN_ID
+	  	  LEFT OUTER JOIN CALL_HISTORY C
+	  	  	ON C.CALL_ID IN (SELECT MAX(CALL_ID) FROM CALL_HISTORY WHERE CONTRACT_NO = B.CONTRACT_NO)
+	     WHERE 1=1 AND B.USE_YN = 'Y' AND A.CAMPAIGN_ID = #{campaignId}
+	       <foreach collection="custDataArrayList" item="map">
+	       		<if test="map.keyValue != null and map.keyValue != ''">
+		       		<if test="map.status == 'and'">
+				  		AND (JSON_VALUE(A.CUST_DATA, #{map.keyName}) LIKE CONCAT('%', #{map.keyValue} , '%')
+		       		</if>
+		       		<if test="map.status == 'or'">
+		       			OR JSON_VALUE(A.CUST_DATA, #{map.keyName}) LIKE CONCAT('%', #{map.keyValue} , '%')
+		       		</if>
+	       			<if test="map.operate != null and map.operate == ')'">
+		       			)
+	       			</if>
+       			</if>
+		   </foreach>
+		   <foreach collection="custInfoList" item="map">
+		   <if test="map.custNm != null and map.custNm != ''">
+		   		AND A.CUST_NM LIKE CONCAT('%', #{map.custNm} ,'%')
+		   </if>
+		   <if test="map.custTelNo != null and map.custTelNo != ''">
+		   		AND A.CUST_TEL_NO LIKE CONCAT('%', #{map.custTelNo} ,'%')
+		   </if>
+		   </foreach>
+		   <foreach collection="callCountArrayList" item="map">
+		   		<if test="map.callTryCount != null and map.callTryCount != ''">
+		   			<if test="map.status == 'and'">
+		   				<if test="map.callTryCount != 3">
+			   				AND (B.CALL_TRY_COUNT = #{map.callTryCount}
+				   		</if>
+				   		<if test="map.callTryCount == 3">
+				   			AND (B.CALL_TRY_COUNT <![CDATA[ >= ]]> #{map.callTryCount}
+				   		</if>
+		   			</if>
+		   			<if test="map.status == 'or'">
+		   				<if test="map.callTryCount != 3">
+		   					OR B.CALL_TRY_COUNT = #{map.callTryCount}
+		   				</if>
+		   				<if test="map.callTryCount == 3">
+				   			OR B.CALL_TRY_COUNT <![CDATA[ >= ]]> #{map.callTryCount}
+				   		</if>
+		   			</if>
+		   			<if test="map.operate != null and map.operate == ')'">
+		   			    )
+		   			</if>
+		   		</if>
+		   </foreach>
+		   <foreach collection="objectStatusArrayList" item="map">
+		   		<if test="map.objectStatus != null and map.objectStatus != ''">
+		   			<if test="map.status == 'and'">
+		   				<if test='map.objectStatus == "notRun"'>
+		   					AND ((C.CALL_ID IS NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failMissing"'>
+		   					AND ((C.DIAL_RESULT = '404' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failOther"'>
+		   					AND ((C.DIAL_RESULT != '200' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL AND C.DIAL_RESULT != '404')
+		   				</if>
+		   				<if test='map.objectStatus == "YN"'>
+		   					AND (((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'N')
+		   				</if>
+		   				<if test='map.objectStatus == "YY"'>
+		   					AND (((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'Y')
+		   				</if>
+		   			</if>
+		   			<if test="map.status == 'or'">
+		   				<if test='map.objectStatus == "notRun"'>
+		   					OR (C.CALL_ID IS NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failMissing"'>
+		   					OR (C.DIAL_RESULT = '404' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failOther"'>
+		   					OR (C.DIAL_RESULT != '200' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL AND C.DIAL_RESULT != '404')
+		   				</if>
+		   				<if test='map.objectStatus == "YN"'>
+		   					OR ((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'N')
+		   				</if>
+		   				<if test='map.objectStatus == "YY"'>
+		   					OR ((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'Y')
+		   				</if>
+		   			</if>
+		   			<if test="map.operate != null and map.operate == ')'">
+		   				)
+		   			</if>
+		   		</if>
+		   </foreach>
+		   ORDER BY A.CUST_ID
+		   <if test="offset != null and rowNum != null and rowNum != 0">
+		       OFFSET #{offset, jdbcType=INTEGER} ROWS FETCH NEXT #{rowNum, jdbcType=INTEGER} ROWS ONLY
+		   </if>
+	</select>
+	
+	<select id="getReservationCustListCount" parameterType="map" resultType="int">
+		SELECT COUNT(*) AS TotalCnt
+		  FROM (
+				 SELECT A.CUST_ID
+								FROM CUST_INFO A
+								LEFT OUTER JOIN CM_CONTRACT B
+								ON A.CUST_ID = B.CUST_ID AND A.CAMPAIGN_ID = B.CAMPAIGN_ID
+								LEFT OUTER JOIN CALL_HISTORY C
+								ON C.CALL_ID IN (SELECT max(CALL_ID) FROM CALL_HISTORY WHERE CONTRACT_NO = B.CONTRACT_NO)
+								WHERE A.CAMPAIGN_ID = #{campaignId} and B.USE_YN = 'Y'
+	              	<foreach collection="custDataArrayList" item="map">
+		              	<if test="map.keyValue != null and map.keyValue != ''">
+				       		<if test="map.status == 'and'">
+						  		AND (JSON_VALUE(CUST_DATA, #{map.keyName}) LIKE CONCAT('%', #{map.keyValue} , '%')
+				       		</if>
+				       		<if test="map.status == 'or'">
+				       			OR JSON_VALUE(CUST_DATA, #{map.keyName}) LIKE CONCAT('%', #{map.keyValue} , '%')
+				       		</if>
+				       		<if test="map.operate != null and map.operate == ')'">
+				       			)
+			       			</if>
+			       		</if>
+				   </foreach>
+				   <foreach collection="callCountArrayList" item="map">
+				   		<if test="map.callTryCount != null and map.callTryCount != ''">
+				   			<if test="map.status == 'and'">
+				   				<if test="map.callTryCount != 3">
+				   					AND (B.CALL_TRY_COUNT = #{map.callTryCount}
+				   				</if>
+				   				<if test="map.callTryCount == 3">
+				   					AND (B.CALL_TRY_COUNT <![CDATA[ >= ]]> #{map.callTryCount}
+				   				</if>
+				   			</if>
+				   			<if test="map.status == 'or'">
+				   				<if test="map.callTryCount != 3">
+				   					OR B.CALL_TRY_COUNT = #{map.callTryCount}
+				   				</if>
+				   				<if test="map.callTryCount == 3">
+				   					OR B.CALL_TRY_COUNT <![CDATA[ >= ]]> #{map.callTryCount}
+				   				</if>
+				   			</if>
+				   			<if test="map.operate != null and map.operate == ')'">
+				   			    )
+				   			</if>
+				   		</if>
+				   </foreach>
+				   <foreach collection="custInfoList" item="map">
+			   		<if test="map.custNm != null and map.custNm != ''">
+						AND A.CUST_NM LIKE CONCAT('%', #{map.custNm} , '%')
+			   		</if>
+			   		<if test="map.custTelNo != null and map.custTelNo != ''">
+			   			AND A.CUST_TEL_NO LIKE CONCAT('%', #{map.custTelNo} , '%')
+			   		</if>
+			   </foreach>
+			   <foreach collection="objectStatusArrayList" item="map">
+		   		<if test="map.objectStatus != null and map.objectStatus != ''">
+		   			<if test="map.status == 'and'">
+		   				<if test='map.objectStatus == "notRun"'>
+		   					AND ((C.CALL_ID IS NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failMissing"'>
+		   					AND ((C.DIAL_RESULT = '404' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failOther"'>
+		   					AND ((C.DIAL_RESULT != '200' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL AND C.DIAL_RESULT != '404')
+		   				</if>
+		   				<if test='map.objectStatus == "YN"'>
+		   					AND (((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'N')
+		   				</if>
+		   				<if test='map.objectStatus == "YY"'>
+		   					AND (((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'Y')
+		   				</if>
+		   			</if>
+		   			<if test="map.status == 'or'">
+		   				<if test='map.objectStatus == "notRun"'>
+		   					OR (C.CALL_ID IS NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failMissing"'>
+		   					OR (C.DIAL_RESULT = '404' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL)
+		   				</if>
+		   				<if test='map.objectStatus == "failOther"'>
+		   					OR (C.DIAL_RESULT != '200' AND C.DIAL_RESULT IS NOT NULL AND C.CALL_ID IS NOT NULL AND C.DIAL_RESULT != '404')
+		   				</if>
+		   				<if test='map.objectStatus == "YN"'>
+		   					OR ((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'N')
+		   				</if>
+		   				<if test='map.objectStatus == "YY"'>
+		   					OR ((C.DIAL_RESULT = '200' OR C.DIAL_RESULT IS NULL) AND C.CALL_ID IS NOT NULL AND C.SCENARIO_RESULT = 'Y')
+		   				</if>
+		   			</if>
+		   			<if test="map.operate != null and map.operate == ')'">
+		   				)
+		   			</if>
+		   		</if>
+		   </foreach>
+	            ) T
+	</select>
+
+	<select id="getDistinctDataId" parameterType="map" resultType="ai.maum.biz.fastaicc.main.api.domain.CallReservationApiVO">
+		/* *BATCH_LOG*  */
+		SELECT CUST_DATA_CLASS_ID 
+			 , 'Y' AS batch_yn
+		  FROM AUTO_CALL_CONDITION_CUSTOM 
+		 WHERE AUTO_CALL_CONDITION_ID = #{autoCallConditionId} and USE_YN = 'Y'
+		 GROUP BY CUST_DATA_CLASS_ID 
+		HAVING COUNT(CUST_DATA_CLASS_ID) > 1
+	</select>
+	
+	<select id="getCustDataClassInfo" parameterType="map" resultType="ai.maum.biz.fastaicc.main.api.domain.CallReservationApiVO">
+		/* *BATCH_LOG*  */
+		SELECT * 
+		     , 'Y' AS batch_yn
+		  FROM CUST_DATA_CLASS 
+		 WHERE CUST_DATA_CLASS_ID IN (SELECT CUST_DATA_CLASS_ID 
+		   								FROM AUTO_CALL_CONDITION_CUSTOM 
+		   							   WHERE USE_YN = 'Y' 
+		   							     AND AUTO_CALL_CONDITION_ID = #{autoCallConditionId})
+	</select>
+
+</mapper>

@@ -1,0 +1,13 @@
+<svg id="ico_menu_24px" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+    <defs>
+        <style>
+            .cls-2{fill:#fff}
+        </style>
+    </defs>
+    <path id="사각형_1666" style="fill:none" d="M0 0h24v24H0z"/>
+    <g id="그룹_2064" transform="translate(-274 -43)">
+        <rect id="사각형_1649" class="cls-2" width="20" height="2" rx="1" transform="translate(276 48)"/>
+        <rect id="사각형_1650" class="cls-2" width="20" height="2" rx="1" transform="translate(276 54)"/>
+        <rect id="사각형_1651" class="cls-2" width="20" height="2" rx="1" transform="translate(276 60)"/>
+    </g>
+</svg>

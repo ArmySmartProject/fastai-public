@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.cousult.inbound.mapper.InboundMonitoringMapper">
+    <!--모니터링 결과 resultMap-->
+    <resultMap id="inboundMntListResultMap" type="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+        <id property="contractNo" column="CONTRACT_NO" />
+        <id property="campaignId" column="CAMPAIGN_ID" />
+        <id property="campaignNm" column="CAMPAIGN_NM" />
+        <id property="lastCallId" column="LAST_CALL_ID" />
+        <id property="custId" column="CUST_ID" />
+        <id property="custNm" column="CUST_NM" />
+        <id property="telNo" column="TEL_NO" />
+        <id property="custOpId" column="CUST_OP_ID" />
+        <id property="custOpNm" column="CUST_OP_NM" />
+        <id property="callDate" column="CALL_DATE" />
+        <id property="callStatus" column="CALL_STATUS" />
+        <id property="callStatusNm" column="CALL_STATUS_NM" />
+        <id property="mntStatus" column="MNT_STATUS" />
+        <id property="mntStatusName" column="MNT_STATUS_NAME" />
+        <id property="callMemo" column="CALL_MEMO" />
+        <id property="loanPrice" column="LOAN_PRICE" />
+        <id property="bankAccNum" column="BANK_ACC_NUM" />
+        <id property="bankPaymentDay" column="BANK_PAYMENT_DAY" />
+        <collection property="callHistVO" column="CONTRACT_NO" ofType="ai.maum.biz.fastaicc.main.coulsult.outbound.domain.CallHistoryVO" javaType="java.util.ArrayList" select="getCallHistListByContractNo" />
+    </resultMap>
+
+    <!-- 모니터링 결과 CALL_HISTORY 테이블 리스트 조회-->
+    <select id="getCallHistListByContractNo" resultType="ai.maum.biz.fastaicc.main.cousult.outbound.domain.CallHistoryVO">
+		SELECT
+	      tb1.CALL_ID, tb1.CALL_DATE, tb1.CALL_STATUS, tb2.CD_DESC AS CALL_STATUS_NM, tb1.MNT_STATUS, tb1.MNT_STATUS_NAME, tb1.CALL_MEMO
+		FROM CALL_HISTORY tb1, CM_COMMON_CD tb2
+		WHERE tb1.CONTRACT_NO = #{CONTRACT_NO} AND tb1.CALL_STATUS = tb2.CODE
+		ORDER BY tb1.CALL_ID DESC
+	</select>
+
+    <!-- 모니터링 결과 데이터 조회-->
+    <select id="getInboundCallMntList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultMap="inboundMntListResultMap">
+        SELECT tb1.LAST_CALL_ID, tb1.CONTRACT_NO, tb1.CAMPAIGN_ID, tb4.CAMPAIGN_NM, tb1.CUST_ID, tb5.CUST_NM, tb5.CUST_TEL_NO AS TEL_NO,
+            DATE_FORMAT(tb3.CALL_DATE, "%Y/%m/%d %H:%i:%s") AS CALL_DATE, tb1.CALL_TRY_COUNT, tb3.CALL_STATUS, tb3.CALL_STATUS_NM,
+            tb3.MNT_STATUS, tb3.MNT_STATUS_NAME, tb3.CALL_MEMO, tb6.LOAN_PRICE, tb3.DURATION
+        FROM CM_CONTRACT tb1
+        LEFT OUTER JOIN CM_MNTR_TRGT_MNGMT_IB_INFO tb2 ON tb1.CONTRACT_NO = tb2.CONTRACT_NO
+        LEFT OUTER JOIN (SELECT ch1.CONTRACT_NO, ch1.CALL_ID, ch1.CALL_DATE, ch1.CALL_STATUS, ch1.MNT_STATUS, ch1.MNT_STATUS_NAME, ch1.CALL_MEMO, ch2.CD_DESC AS CALL_STATUS_NM, ch1.DURATION
+          FROM CALL_HISTORY ch1, CM_COMMON_CD ch2
+          WHERE ch1.CALL_STATUS = ch2.CODE) tb3 ON tb1.LAST_CALL_ID = tb3.CALL_ID
+        LEFT OUTER JOIN (SELECT CAMPAIGN_ID, CAMPAIGN_NM FROM CM_CAMPAIGN) tb4 ON tb1.CAMPAIGN_ID = tb4.CAMPAIGN_ID
+        LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb5 ON tb1.CUST_ID = tb5.CUST_ID
+        LEFT OUTER JOIN (SELECT CUST_ID, LOAN_PRICE, BANK_ACC_NUM, BANK_PAYMENT_DAY, CONTRACT_NO FROM CUST_LOAN_INFO) tb6 ON tb1.CONTRACT_NO = tb6.CONTRACT_NO
+
+        WHERE tb1.IS_INBOUND = 'Y'
+        <if test="schMntType != null and schMntType != ''">
+            <!-- 모니터링 종류 -->
+            AND tb1.CAMPAIGN_ID = #{schMntType}
+        </if>
+        <!--<if test="schFinalResult != null and schFinalResult != '' ">
+            &lt;!&ndash; 최종결과 &ndash;&gt;
+            AND call_final_result = #{schFinalResult}
+        </if>-->
+        <if test="schCustNm != null and schCustNm != '' ">
+            <!-- 고객명 -->
+            AND CUST_NM like CONCAT('%', #{schCustNm}, '%')
+        </if>
+        <if test="schCustTelNo != null and schCustTelNo != '' ">
+            <!-- 전화번호 -->
+            AND CUST_TEL_NO like CONCAT('%', #{schCustTelNo}, '%')
+        </if>
+        <if test="schCallState != null and schCallState != '' ">
+            <!-- 콜상태 -->
+            AND CALL_STATUS = #{schCallState}
+        </if>
+        <if test="schCallResult != null and schCallResult != '' ">
+            <!-- 모니터링 내용 -->
+            AND MNT_STATUS = #{schCallResult}
+        </if>
+        <if test="sortingTarget != null and sortingTarget != '' ">
+            ORDER BY ${sortingTarget} ${direction}
+        </if>
+        <if test="sortingTarget == null or sortingTarget == '' ">
+            ORDER BY CONTRACT_NO DESC
+        </if>
+        LIMIT ${startRow}, ${pageInitPerPage}
+    </select>
+
+    <!-- 모니터링 결과 데이터 COUNT 조회-->
+    <select id="getInboundCallMntCount" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="int">
+        SELECT COUNT(*)
+        FROM CM_CONTRACT tb1
+        LEFT OUTER JOIN CUST_BASE_INFO tb2 ON tb1.CUST_ID = tb2.CUST_ID
+        LEFT OUTER JOIN CALL_HISTORY tb3 ON tb1.LAST_CALL_ID = tb3.CALL_ID
+        WHERE tb1.IS_INBOUND = 'Y'
+        <if test="schMntType != null and schMntType != ''">
+            <!-- 모니터링 종류 -->
+            AND tb1.CAMPAIGN_ID = #{schMntType}
+        </if>
+        <!--<if test="schFinalResult != null and schFinalResult != '' ">
+            &lt;!&ndash; 최종결과 &ndash;&gt;
+            AND call_final_result = #{schFinalResult}
+        </if>-->
+        <if test="schCustNm != null and schCustNm != '' ">
+            <!-- 고객명 -->
+            AND CUST_NM like CONCAT('%', #{schCustNm}, '%')
+        </if>
+        <if test="schCustTelNo != null and schCustTelNo != '' ">
+            <!-- 전화번호 -->
+            AND CUST_TEL_NO like CONCAT('%', #{schCustTelNo}, '%')
+        </if>
+        <if test="schCallState != null and schCallState != '' ">
+            <!-- 콜상태 -->
+            AND CALL_STATUS = #{schCallState}
+        </if>
+        <if test="schCallResult != null and schCallResult != '' ">
+            <!-- 모니터링 내용 -->
+            AND MNT_STATUS = #{schCallResult}
+        </if>
+    </select>
+
+    <!-- 모니터링 결과 팝업 1건 정보-->
+    <select id="getInboundCallMntData" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+    SELECT tb1.CONTRACT_NO, tb1.CAMPAIGN_ID, tb4.CAMPAIGN_NM, tb1.CUST_ID, tb5.CUST_NM, tb5.CUST_TEL_NO AS TEL_NO, DATE_FORMAT(tb2.CALL_DATE, "%Y/%m/%d %H:%i:%s") as CALL_DATE,
+      tb2.CALL_STATUS, tb2.CALL_STATUS_NM, tb2.CALL_MEMO, tb1.PROD_ID, tb3.PROD_NM, tb2.CALL_ID, tb6.BANK_ACC_NUM, tb6.BANK_PAYMENT_DAY, tb6.LOAN_PRICE
+    FROM CM_CONTRACT tb1
+    LEFT OUTER JOIN (SELECT ch1.CONTRACT_NO, ch1.CALL_ID, ch1.CALL_DATE, ch1.CALL_STATUS, ch1.MNT_STATUS, ch1.MNT_STATUS_NAME, ch1.CALL_MEMO, ch2.CD_DESC AS CALL_STATUS_NM
+      FROM CALL_HISTORY ch1, CM_COMMON_CD ch2
+      WHERE ch1.CALL_STATUS = ch2.CODE) tb2 ON tb1.LAST_CALL_ID = tb2.CALL_ID
+    LEFT OUTER JOIN (SELECT PROD_ID, PROD_NM FROM CUST_PROD_INFO) tb3 ON tb1.PROD_ID = tb3.PROD_ID
+    LEFT OUTER JOIN (SELECT CAMPAIGN_ID, CAMPAIGN_NM FROM CM_CAMPAIGN) tb4 ON tb1.CAMPAIGN_ID = tb4.CAMPAIGN_ID
+    LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb5 ON tb1.CUST_ID = tb5.CUST_ID
+    LEFT OUTER JOIN (SELECT CUST_ID, LOAN_PRICE, BANK_ACC_NUM, BANK_PAYMENT_DAY, CONTRACT_NO FROM CUST_LOAN_INFO) tb6 ON tb1.CONTRACT_NO = tb6.CONTRACT_NO
+
+        WHERE 1=1
+    <if test="cno != null and cno != ''">
+        AND tb1.CONTRACT_NO = #{cno}
+    </if>
+    </select>
+
+    <!-- 인바운드 폰 개수 카운트 -->
+    <select id="getPhoneList" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO" resultType="ai.maum.biz.fastaicc.main.cousult.inbound.domain.SipAccountVO">
+        SELECT A.SIP_DOMAIN /*getPhoneList 인바운드 폰 개수 카운트*/
+		     , A.SIP_USER
+		     , A.TEL_URI
+		     , A.PBX_NAME
+		     , A.STATUS
+		     , A.CONTRACT_NO
+		     , A.CUSTOMER_PHONE
+		     , A.CAMPAIGN_ID
+		     , A.is_inbound
+		     , B.TEL_NO
+		FROM   SIP_ACCOUNT A
+		       LEFT OUTER JOIN CM_CONTRACT B
+		       ON     A.CONTRACT_NO = B.CONTRACT_NO
+		       AND    A.STATUS      = 'CS0002'
+		WHERE  1=1
+			AND A.CUST_OP_ID = #{sessId}
+        <!--<if test="campaignId != null and campaignId != ''">-->
+            <!--&lt;!&ndash; 캠페인 ID &ndash;&gt;-->
+            <!--AND A.CAMPAIGN_ID = #{campaignId}-->
+        <!--</if>-->
+        <if test="call_type_code != null and call_type_code != ''">
+            <!-- 인바운드 아웃바운드 ID -->
+            AND A.IS_INBOUND = #{call_type_code}
+        </if>
+    </select>
+
+    <!-- 최근 통화 리스트 -->
+    <select id="getLatestCallList" resultType="ai.maum.biz.fastaicc.main.cousult.common.domain.CmContractVO">
+		SELECT
+	      tb2.CAMPAIGN_NM, tb3.CUST_TEL_NO AS TEL_NO, DATE_FORMAT(tb1.CREATED_DTM, "%Y/%m/%d %H:%i:%s") AS CALL_DATE
+        FROM CM_CONTRACT tb1
+        LEFT OUTER JOIN (SELECT CAMPAIGN_ID, CAMPAIGN_NM FROM CM_CAMPAIGN) tb2 ON tb1.CAMPAIGN_ID = tb2.CAMPAIGN_ID
+        LEFT OUTER JOIN (SELECT CUST_ID, CUST_NM, CUST_TEL_NO FROM CUST_BASE_INFO) tb3 ON tb1.CUST_ID = tb3.CUST_ID
+        WHERE IS_INBOUND = 'Y'
+        LIMIT 10
+	</select>
+
+    <update id="updateMemo" parameterType="ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO">
+        UPDATE CALL_HISTORY	/* updateMemo */
+        SET CALL_MEMO = #{popMemo}
+        <if test="popMntCont != null and popMntCont != ''">
+            , MONITOR_CONT = #{popMntCont}
+        </if>
+        <if test="callbackDate != null and callbackDate != ''">
+            , CALLBACK_DT = #{callbackDate}
+        </if>
+        WHERE CALL_ID = #{callId}
+    </update>
+    
+    <!-- 차트4번 -->
+
+    <select id="getChart4InfoList"  parameterType="hashmap"  resultType="ai.maum.biz.fastaicc.main.cousult.inbound.domain.ChartVO">
+			SELECT A.CODE    AS CODE
+			     , A.cd_desc AS CODE_NM
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 6 DAY))
+			       )
+			       AS NOW6
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 5 DAY))
+			       )
+			       AS NOW5
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 4 DAY))
+			       )
+			       AS NOW4
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 3 DAY))
+			       )
+			       AS NOW3
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 2 DAY))
+			       )
+			       AS NOW2
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 1 DAY))
+			       )
+			       AS NOW1
+			     , (SELECT COUNT(B.CALL_STATUS)
+			       FROM    CALL_HISTORY B
+			       WHERE   B.CALL_STATUS                        = A.code
+			       AND     DATE_FORMAT(B.CALL_DATE, '%Y-%m-%d') = DATE(subdate(GETDATE(), INTERVAL 0 DAY))
+			       )
+			       AS NOW0
+			FROM   CM_COMMON_CD A
+			WHERE  A.FIRST_CD ='02'
+			AND A.code IN(
+			<foreach item="item" collection="arr" index="index" separator="," >
+	       	 #{item}
+	    	</foreach>
+			)
+    </select>
+</mapper>

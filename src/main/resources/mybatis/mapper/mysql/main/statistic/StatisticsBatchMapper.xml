@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ai.maum.biz.fastaicc.main.statistic.mapper.StatisticsBatchMapper">
+
+	<insert id="insertIntoSelectStatsCallHistoryTotal"  parameterType="map">
+		/* 종합 콜통계 쿼리 */
+		INSERT INTO STAT_CALL_HISTORY_TOTAL (CHANNEL_TYPE, INCOMING_COUNT, BOT_COUNT, INTERVENT_COUNT, OP_COUNT, GIVE_UP_COUNT, FOLLOW_UP_CALL_COUNT, AVG_CALL_TIME, AVG_WAIT_TIME, AVG_GIVE_UP_TIME, DAYS, START_DT, END_DT)
+		SELECT
+		   T1.CHANNEL_TYPE                    											AS CHANNEL_TYPE
+		   , IFNULL(T1.INCOMING_COUNT, 0)     											AS INCOMING_COUNT
+		   , IFNULL(T1.BOT_COUNT, 0)          											AS BOT_COUNT
+		   , IFNULL(T1.INTERVENT_COUNT, 0)    											AS INTERVENT_COUNT
+		   , T1.OP_COUNT                      											AS OP_COUNT
+		   , T1.GIVE_UP_COUNT                 											AS GIVE_UP_COUNT
+		   , T1.FOLLOW_UP_CALL_COUNT          											AS FOLLOW_UP_CALL_COUNT
+		   , IFNULL(T1.ASAVG_CALL_TIME, 0)    											AS ASAVG_CALL_TIME
+		   , T1.AVG_WAIT_TIME                 											AS AVG_WAIT_TIME
+		   , T1.AVG_GIVE_UP_TIME              											AS AVG_GIVE_UP_TIME
+		   , IFNULL(T1.DAYS, DAYOFWEEK(T2.TIME_INTERVAL))           					AS DAYS
+		   , T2.TIME_INTERVAL      														AS START_DT
+		   , DATE_FORMAT(T2.TIME_INTERVAL + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') 	AS END_DT
+		FROM (
+			SELECT
+				NULL                                                                                            	AS CHANNEL_TYPE         /*채널 타입 (0: Call, 1:Chat)*/
+				, COUNT(CALL_ID)                                                                                  	AS INCOMING_COUNT       /*총 인입 수*/
+				, SUM(CASE WHEN CALL_STATUS = 'CS0002' OR CALL_STATUS = 'CS0005' THEN 1 END)                      	AS BOT_COUNT            /*BOT 응대 수*/
+				, SUM(CASE WHEN CALL_STATUS = 'CS0009' OR CALL_STATUS = 'CS0010' THEN 1 END)                      	AS INTERVENT_COUNT      /*개입 응대 수*/
+				, NULL                                                                                            	AS OP_COUNT             /*휴먼 응대 수*/
+				, NULL                                                                                            	AS GIVE_UP_COUNT        /*포기 호*/
+				, NULL                                                                                            	AS FOLLOW_UP_CALL_COUNT /*Follow up call 수*/
+				, ROUND(SUM(CASE
+					WHEN CALL_STATUS = 'CS0002' OR CALL_STATUS = 'CS0005'
+					OR CALL_STATUS = 'CS0009' OR CALL_STATUS = 'CS0010'
+					THEN DURATION END) DIV COUNT(CALL_ID))                                                     		AS ASAVG_CALL_TIME      /*평균통화시간*/
+				, NULL                                                                                            	AS AVG_WAIT_TIME        /*평균대기시간*/
+				, NULL                                                                                            	AS AVG_GIVE_UP_TIME     /*평균포기시간*/
+				, DAYOFWEEK(START_TIME)                                                                           	AS DAYS                 /*요일 (1 ~ 7) 1:SUN, 2:MON, 3:TUES, 4:WED, 5:THURS, 6:FRI, 7:SAT*/
+				, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800)                       	AS START_DT             /*집계 시작 시각*/
+				, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) + INTERVAL 30 MINUTE  	AS END_DT               /*집계 종료 시각*/
+			FROM CALL_HISTORY
+			WHERE START_TIME BETWEEN #{startDt} AND #{endDt}
+			GROUP BY START_DT
+		) T1
+		RIGHT JOIN
+		(
+			SELECT
+				DATE_FORMAT(@curRow := @curRow + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS TIME_INTERVAL
+			FROM CALL_HISTORY
+			JOIN (SELECT @curRow := TIMESTAMP(#{startDt} - INTERVAL 30 MINUTE)) r
+			ON @curRow <![CDATA[ < ]]> #{endDt} - INTERVAL 30 MINUTE
+		) T2  /*기간의 30분 주기 더미 테이블*/
+		ON T1.START_DT = T2.TIME_INTERVAL
+		ORDER BY START_DT
+    </insert>
+
+	<insert id="insertIntoSelectStatsCallHistoryOp"  parameterType="map">
+		/* 상담원별 콜통계 쿼리 */
+		INSERT INTO STAT_CALL_HISTORY_OP(CUST_OP_ID, CUST_OP_NM, IN_CALL_COUNT, IN_CALL_TIME, OUT_CALL_COUNT, OUT_CALL_TIME, DAYS, START_DT, END_DT)
+		SELECT
+			T2.CUST_OP_ID   															AS CUST_OP_ID
+			, COI.USER_NM   															AS CUST_OP_NM
+			, IFNULL(T1.IN_CALL_COUNT, 0)  												AS IN_CALL_COUNT
+			, IFNULL(T1.IN_CALL_TIME, 0)   												AS IN_CALL_TIME
+			, IFNULL(T1.OUT_CALL_COUNT, 0) 												AS OUT_CALL_COUNT
+			, IFNULL(T1.OUT_CALL_TIME, 0)  												AS OUT_CALL_TIME
+			, IFNULL(T1.DAYS, DAYOFWEEK(T2.TIME_INTERVAL))               				AS DAYS
+			, T2.TIME_INTERVAL      													AS START_DT
+			, DATE_FORMAT(T2.TIME_INTERVAL + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') 	AS END_DT
+		FROM  (
+			SELECT
+				CUST_OP_ID 																							AS CUST_OP_ID		/*상담원 ID*/
+				, SUM(CASE WHEN CALL_TYPE_CODE = 'CT0001' THEN 1 END) 												AS IN_CALL_COUNT	/*인바운드 콜 카운트*/
+				, ROUND(SUM(CASE WHEN CALL_TYPE_CODE = 'CT0001' THEN DURATION END)) 								AS IN_CALL_TIME		/*인바운드 콜 타임*/
+				, SUM(CASE WHEN CALL_TYPE_CODE = 'CT0002' THEN 1 END) 												AS OUT_CALL_COUNT	/*아웃바운드 콜 카운트*/
+				, ROUND(SUM(CASE WHEN CALL_TYPE_CODE = 'CT0002' THEN DURATION END)) 								AS OUT_CALL_TIME	/*아웃바운드 콜 타임*/
+				, DAYOFWEEK(START_TIME) 																			AS DAYS				/*요일 (1 ~ 7) 1:SUN, 2:MON, 3:TUES, 4:WED, 5:THURS, 6:FRI, 7:SAT*/
+				, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) 						AS START_DT			/*집계 시작 시각*/
+				, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) + INTERVAL 30 MINUTE 	AS END_DT			/*집계 종료 시각*/
+			FROM CALL_HISTORY
+			WHERE START_TIME BETWEEN #{startDt} AND #{endDt}
+			GROUP BY CUST_OP_ID, START_DT
+		) T1
+		RIGHT JOIN
+		(
+			SELECT
+				A.CUST_OP_ID
+				, B.TIME_INTERVAL
+			FROM (
+				SELECT
+					CUST_OP_ID
+				FROM CALL_HISTORY
+				WHERE START_TIME BETWEEN #{startDt} AND #{endDt}
+				GROUP BY CUST_OP_ID
+			) AS A
+			JOIN
+			(
+				SELECT
+					DATE_FORMAT(@curRow := @curRow + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS TIME_INTERVAL
+				FROM CALL_HISTORY
+				JOIN (SELECT @curRow := TIMESTAMP(#{startDt} - INTERVAL 30 MINUTE)) r
+				ON @curRow <![CDATA[ < ]]> #{endDt} - INTERVAL 30 MINUTE
+			) AS B
+		) T2  /*기간의 30분 주기 더미 테이블*/
+		ON T1.START_DT = T2.TIME_INTERVAL
+		AND T1.CUST_OP_ID = T2.CUST_OP_ID
+		LEFT JOIN TN_USER COI
+		ON T2.CUST_OP_ID = COI.CUST_OP_ID
+		ORDER BY CUST_OP_ID, START_DT
+    </insert>
+
+	<insert id="insertIntoSelectStatsCallHistoryConsultType"  parameterType="map">
+		/* 상담유형별 콜통계 쿼리 TYPE1*/
+		INSERT INTO STAT_CALL_HISTORY_CONSULT_TYPE (CUST_OP_ID, CHANNEL_TYPE, DEPTH, CONSULT_TYPE_CD, CONSULT_TYPE_NM, CONSULT_TYPE_COUNT, DAYS, START_DT, END_DT)
+		SELECT
+			CH.CUST_OP_ID AS CUST_OP_ID	                    															/*상담원 ID*/
+			, NULL AS CHANNEL_TYPE                          															/*채널 타입 (0: Call, 1:Chat)*/
+			, ${depth} AS DEPTH                             															/*분류 depth (1 ~ 3)*/
+			, CH.CONSULT_TYPE1_DEPTH${depth} AS CONSULT_TYPE_CD    														/*상담유형 코드*/
+			, CCCD.CODE_NM AS CONSULT_TYPE_NM               															/*상담유형 설명*/
+			, COUNT(CH.CALL_ID) AS CONSULT_TYPE_COUNT       															/*상담유형 통계 카운트*/
+			, DAYOFWEEK(START_TIME) AS DAYS                 															/*요일 (1 ~ 7) 1:SUN, 2:MON, 3:TUES, 4:WED, 5:THURS, 6:FRI, 7:SAT*/
+			, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) AS START_DT                     /*집계 시작 시각*/
+			, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) + INTERVAL 30 MINUTE AS END_DT  /*집계 종료 시각*/
+		FROM CALL_HISTORY CH
+		LEFT JOIN
+     	(
+			SELECT CODE, CODE_NM
+			FROM CUST_CATEGORY_CD
+			GROUP BY CODE
+     	) CCCD
+    	ON CH.CONSULT_TYPE1_DEPTH${depth} = CCCD.CODE
+		WHERE CONSULT_TYPE1_DEPTH${depth} IS NOT NULL
+      		AND START_TIME BETWEEN #{startDt} AND #{endDt}
+		GROUP BY CONSULT_TYPE1_DEPTH${depth}, CUST_OP_ID, START_DT
+
+		UNION ALL
+
+		/* 상담유형별 콜통계 쿼리 TYPE2*/
+		SELECT
+			CH.CUST_OP_ID AS CUST_OP_ID	                    															/*상담원 ID*/
+			, NULL AS CHANNEL_TYPE                          															/*채널 타입 (0: Call, 1:Chat)*/
+			, ${depth} AS DEPTH                                    														/*분류 depth (1 ~ 3)*/
+			, CH.CONSULT_TYPE2_DEPTH${depth} AS CONSULT_TYPE_CD    														/*상담유형 코드*/
+			, CCCD.CODE_NM AS CONSULT_TYPE_NM               															/*상담유형 설명*/
+			, COUNT(CH.CALL_ID) AS CONSULT_TYPE_COUNT       															/*상담유형 통계 카운트*/
+			, DAYOFWEEK(START_TIME) AS DAYS                 															/*요일 (1 ~ 7) 1:SUN, 2:MON, 3:TUES, 4:WED, 5:THURS, 6:FRI, 7:SAT*/
+			, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) AS START_DT                     /*집계 시작 시각*/
+			, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) + INTERVAL 30 MINUTE AS END_DT	/*집계 종료 시각*/
+		FROM CALL_HISTORY CH
+		LEFT JOIN
+			 (
+				 SELECT CODE, CODE_NM
+				 FROM CUST_CATEGORY_CD
+				 GROUP BY CODE
+			 ) CCCD
+			ON CH.CONSULT_TYPE2_DEPTH${depth} = CCCD.CODE
+		WHERE CONSULT_TYPE2_DEPTH${depth} IS NOT NULL
+			  AND START_TIME BETWEEN #{startDt} AND #{endDt}
+		GROUP BY CONSULT_TYPE2_DEPTH${depth}, CUST_OP_ID, START_DT
+
+		UNION ALL
+
+		/* 상담유형별 콜통계 쿼리 TYPE3*/
+		SELECT
+			CH.CUST_OP_ID AS CUST_OP_ID	                    															/*상담원 ID*/
+			, NULL AS CHANNEL_TYPE                          															/*채널 타입 (0: Call, 1:Chat)*/
+			, ${depth} AS DEPTH                                    														/*분류 depth (1 ~ 3)*/
+			, CH.CONSULT_TYPE3_DEPTH${depth} AS CONSULT_TYPE_CD    														/*상담유형 코드*/
+			, CCCD.CODE_NM AS CONSULT_TYPE_NM               															/*상담유형 설명*/
+			, COUNT(CH.CALL_ID) AS CONSULT_TYPE_COUNT       															/*상담유형 통계 카운트*/
+			, DAYOFWEEK(START_TIME) AS DAYS                 															/*요일 (1 ~ 7) 1:SUN, 2:MON, 3:TUES, 4:WED, 5:THURS, 6:FRI, 7:SAT*/
+			, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) AS START_DT                     /*집계 시작 시각*/
+			, FROM_UNIXTIME(CAST(UNIX_TIMESTAMP(START_TIME) DIV 1800 AS SIGNED) * 1800) + INTERVAL 30 MINUTE AS END_DT	/*집계 종료 시각*/
+		FROM CALL_HISTORY CH
+		LEFT JOIN
+			 (
+				 SELECT CODE, CODE_NM
+				 FROM CUST_CATEGORY_CD
+				 GROUP BY CODE
+			 ) CCCD
+			ON CH.CONSULT_TYPE3_DEPTH${depth} = CCCD.CODE
+		WHERE CONSULT_TYPE3_DEPTH${depth} IS NOT NULL
+			  AND START_TIME BETWEEN #{startDt} AND #{endDt}
+		GROUP BY CONSULT_TYPE3_DEPTH${depth}, CUST_OP_ID, START_DT
+
+		ORDER BY START_DT, CUST_OP_ID, CONSULT_TYPE_CD
+    </insert>
+</mapper>
