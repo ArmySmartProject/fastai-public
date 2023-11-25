@@ -139,6 +139,6 @@ logging:
 #작업의뢰 form,upload 경로 설정
 work-request:
   form:
-    path: '/srv/fast/excel'
+    path: '/srv/fast/work-request/form/'
   upload:
-    path: '/srv/fast/upload/'
+    path: '/srv/fast/work-request/upload/'
