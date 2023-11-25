@@ -5,12 +5,12 @@ database:
 spring:
   # main DB (mariaDB 변경)
   datasource1:
-    jdbc-url: jdbc:log4jdbc:mysql://fastchatbot-db:13306/HAPPYCALL4?useUnicode=yes&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
+    jdbc-url: jdbc:log4jdbc:mysql://localhost:3306/HAPPYCALL4?useUnicode=yes&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
     username: minds
     password: msl1234~
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
   datasource2:
-    jdbc-url: jdbc:log4jdbc:mysql://fastchatbot-db:13306/Chatbot?useUnicode=yes&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
+    jdbc-url: jdbc:log4jdbc:mysql://localhost:3306/Chatbot?useUnicode=yes&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
     username: minds
     password: msl1234~
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
@@ -40,9 +40,9 @@ voice:
   port: ':5800'
 
 proxy:
-  protocol: wss
-  ip: 183.110.62.86
-  port: ':443'
+  protocol: ws
+  ip: localhost
+  port: ':18080'
 
 chatting:
   ip: localhost
@@ -50,9 +50,9 @@ chatting:
 
 excel:
   form:
-    path: '/srv/fast/excel/'
+    path: '/home/Documents/Downloads/'
   upload:
-    path: '/srv/fast/excel/happycall_webfile/'
+    path: '/home/Documents/Downloads/'
 
 mail-info:
   username: 'mailtest0218'
@@ -63,38 +63,40 @@ mail-info:
 
 obcalltotal:
   ip: localhost
-  port: ':15002'
+  port: ':5002'
   protocol: '/call_stat'
 
 solr:
-  url: 'http://localhost:18983/solr/mrc'
-  en_url: 'http://localhost:18983/solr/mrc_en'
+  url: 'http://10.122.64.152:8983/solr/mrc'
+  en_url: 'http://10.122.64.152:8983/solr/mrc'
 
-domain: http://183.110.62.86/
+domain: http://localhost:18080
 
 cookie:
-  domainName: 183.110.62.86
+  domainName: localhost
 
 autocall:
-  is-execute: true
+  is-execute: false
   batch-interval-time: 10
   check-valid-url: ''
 
 msgtalk:
   is-execute: false
-  batch-interval-time: '0 0 10 * * *'
+  batch-interval-time: '*/30 * * * * *'
   check-valid-url: ''
 
+#현대해상 : hdhs, maum-ai: maumAi
 site-custom: 'maumAi'
 
 iframe_url:
-  simplebot: 'http://183.110.62.86:8080/sds-builder/upload/simpleBot'
-  chatbotBuilder: 'http://183.110.62.86:8080/sds-builder/upload/chatbotBuilder'
-  voicebotBuilder: 'http://183.110.62.86:8080/sds-builder/upload/vbBuilder'
+  simplebot: 'http://localhost:8080/upload/simpleBot'
+  chatbotBuilder: 'http://localhost:8080/upload/chatbotBuilder'
+  voicebotBuilder: 'http://localhost:8080/upload/vbBuilder'
 
 api:
   simplebot:
-    get_list_url: 'http://183.110.62.86:8080/sds-builder/upload/simpleBot/getSimpleBotList'
+    get_list_url: 'http://localhost:8080/upload/simpleBot/getSimpleBotList'
+
 
 # JWT signKey
 maum:
@@ -102,26 +104,27 @@ maum:
 
 sso:
   mindslab:
-    client-id: fast-aicc
+    client-id: fast-aicc.local
     request:
       authorize:
-        url: https://sso.maum.ai/hq/oauth/authorize
+        url: https://hq.maum.ai:10080/hq/oauth/authorize
       request-token:
-        url: https://sso.maum.ai/hq/oauth/token
+        url: https://dev-sso.maum.ai/hq/oauth/token
       logout-token:
-        url: https://naccount-stg.maum.ai/logout
+        url: https://naccount.maum.ai/logout
       maum-login:
-        url: https://mindslab-stg.maum.ai/auth/login?redirect_url=http://183.110.62.86/login
+        url: https://maum.ai/auth/login
     callback:
       token:
-        url: http://183.110.62.86/login
+        url: http://localhost:8443/login
     companyId: comp007 #추후 수정 필요
-    companyGroupId: 2 #추후 수정 필요
+    companyGroupId: 13 #추후 수정 필요
 
 # PW Change month
 pw-month: 3
 # PW Error max
 pw-err-max: 5
+
 
 #사이트에 맞게 수정
 logging:
@@ -139,6 +142,6 @@ logging:
 #작업의뢰 form,upload 경로 설정
 work-request:
   form:
-    path: '/srv/fast/work-request/form/'
+    path: '/home/Documents/Downloads/work-request/form/'
   upload:
-    path: '/srv/fast/work-request/upload/'
+    path: '/home/Documents/Downloads/work-request/upload/'

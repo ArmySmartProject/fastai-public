@@ -31,9 +31,7 @@ out/
 
 ### VS Code ###
 .vscode/
-application-prod.yml
-application-local.yml
-application-dev2.yml
-application-dev.yml
-application-aws.yml
-application.yml
+#application-prod.yml
+#application-local.yml
+#application-stg.yml
+#application.yml

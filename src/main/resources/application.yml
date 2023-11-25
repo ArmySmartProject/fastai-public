@@ -1,0 +1,35 @@
+spring:
+  mvc:
+    view:
+      prefix: /WEB-INF/views/
+      suffix: .jsp
+  profiles:
+    active: prod
+  batch:
+    initialize-schema: never
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+mybatis:
+  type-aliases-package: ai.maum.biz.fastaicc
+  mapper-locations: mybatis/mapper/${database.active}/main/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: 18080
+#  ssl:
+#    enabled: true
+#    key-store: maum.ai.jks
+#    key-store-type: JKS
+#    key-store-password: msl1234~
+  servlet:
+    session:
+      timeout: 720000m
+      cookie:
+        name: HAPPYCALLSESSIONID
+    jsp:
+      init-parameters:
+        mappedfile: false
