@@ -586,12 +586,12 @@ $(document).ready(function () {
 			alert('notification is disabled');
 		} else {
 			var notification = new Notification('[ ' + serviceNm + ' ]', {
-				icon: 'https://sds.maum.ai/resources/images/ico_testbot.png',
+				icon: 'https://sds-dev.maum.ai/resources/images/ico_testbot.png',
 				body: count + '건의 상담 요청이 있습니다. \n ',
 				requireInteraction: true
 			});
 			notification.onclick = function () {
-				window.open('https://fast-aicc.maum.ai/cbCsMain');
+				window.open('https://fast-aicc-dev.maum.ai/cbCsMain');
 			};
 		}
 	};

@@ -464,7 +464,7 @@ public class StatisticsController {
 		} else if(customProperties.getRestIp().equals("125.132.250.243")) {
 			audioUrl = "https://"+customProperties.getAudioIp()+customProperties.getAudioPort() + "/call/record/"; // 웹소켓  URL
 		} else if (customProperties.getRestIp().equals("3.34.250.255")){
-			audioUrl = "https://stg-fast-aicc.maum.ai" + customProperties.getAudioPort() + "/call/record/"; // 웹소켓  URL
+			audioUrl = "https://fast-aicc-dev.maum.ai" + customProperties.getAudioPort() + "/call/record/"; // 웹소켓  URL
 		}
 
 		// 리턴 값

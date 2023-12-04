@@ -54,7 +54,7 @@
         <img class="auto_img" src="https://user-images.githubusercontent.com/77707749/107329289-4dcfe700-6af3-11eb-97c7-017a2faea150.png" alt="이미지 카드">
       </div>
       그림 예시를 보면 사진이 ‘이미지’, AVA 문구가 ‘디스플레이명’, 그리고 빨간 박스 안의 내용이 ‘Description’입니다. 하지만 이미지 같은 경우는 보통 jpg나 png 파일로 되어 있어 엑셀에 넣기 힘들기 때문에 이미지를 링크로 변환시켜서 변환된 링크를 이미지 cell에 기입 합니다. 이미지를 추가하는 다른 방법으로는 엑셀파일에서 이미지 cell에 별도 입력없이 챗봇빌더에 파일 업로드 후 각 각의 인텐트에 이미지 추가할 수 있습니다.<br><br>
-      ※ 참고 : 이미지 -> 링크 변환 URL :: <a href="https://sds.maum.ai:8080/brain-sds-builder/upload/image">https://sds.maum.ai:8080/brain-sds-builder/upload/image</a>
+      ※ 참고 : 이미지 -> 링크 변환 URL :: <a href="https://sds-dev.maum.ai:8080/brain-sds-builder/upload/image">https://sds-dev.maum.ai:8080/brain-sds-builder/upload/image</a>
     </div>
   </li>
   <li>

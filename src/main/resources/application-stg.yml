@@ -41,7 +41,7 @@ voice:
 
 proxy:
   protocol: wss
-  ip: 183.110.62.86
+  ip: fast-aicc-dev.maum.ai
   port: ':443'
 
 chatting:
@@ -70,10 +70,10 @@ solr:
   url: 'http://localhost:18983/solr/mrc'
   en_url: 'http://localhost:18983/solr/mrc_en'
 
-domain: http://183.110.62.86/
+domain: https://fast-aicc-dev.maum.ai/
 
 cookie:
-  domainName: 183.110.62.86
+  domainName: fast-aicc-dev.maum.ai
 
 autocall:
   is-execute: true
@@ -88,13 +88,13 @@ msgtalk:
 site-custom: 'maumAi'
 
 iframe_url:
-  simplebot: 'http://183.110.62.86:8080/sds-builder/upload/simpleBot'
-  chatbotBuilder: 'http://183.110.62.86:8080/sds-builder/upload/chatbotBuilder'
-  voicebotBuilder: 'http://183.110.62.86:8080/sds-builder/upload/vbBuilder'
+  simplebot: 'https://sds-dev.maum.ai:8080/sds-builder/upload/simpleBot'
+  chatbotBuilder: 'https://sds-dev.maum.ai:8080/sds-builder/upload/chatbotBuilder'
+  voicebotBuilder: 'https://sds-dev.maum.ai:8080/sds-builder/upload/vbBuilder'
 
 api:
   simplebot:
-    get_list_url: 'http://183.110.62.86:8080/sds-builder/upload/simpleBot/getSimpleBotList'
+    get_list_url: 'https://sds-dev.maum.ai:8080/sds-builder/upload/simpleBot/getSimpleBotList'
 
 # JWT signKey
 maum:
@@ -111,10 +111,10 @@ sso:
       logout-token:
         url: https://naccount-stg.maum.ai/logout
       maum-login:
-        url: https://mindslab-stg.maum.ai/auth/login?redirect_url=http://183.110.62.86/login
+        url: https://mindslab-stg.maum.ai/auth/login?redirect_url=https://fast-aicc-dev.maum.ai/login
     callback:
       token:
-        url: http://183.110.62.86/login
+        url: https://fast-aicc-dev.maum.ai/login
     companyId: comp007 #추후 수정 필요
     companyGroupId: 2 #추후 수정 필요
 

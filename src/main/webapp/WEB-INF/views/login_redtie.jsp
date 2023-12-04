@@ -22,7 +22,7 @@
     <!-- Open Graph Tag -->
     <meta property="og:title"            content="redtie.ai"/>
     <meta property="og:type"             content="website"/><!-- 웹 페이지 타입 -->
-    <meta property="og:url"              content="https://fast-aicc.maum.ai/redtie/login"/>
+    <meta property="og:url"              content="https://fast-aicc-dev.maum.ai/redtie/login"/>
     <meta property="og:image"            content="${pageContext.request.contextPath}/resources/images/logo_redtie_thumbnail.png"/>
     <meta property="og:description"      content="호텔, 게스트하우스, 펜션 등 숙박사업체에 인공지능기반 다국어 컨시어지 챗봇 플랫폼 제공"/>
 
