@@ -5,12 +5,12 @@ database:
 spring:
   # main DB (mariaDB 변경)
   datasource1:
-    jdbc-url: jdbc:log4jdbc:mysql://fastchatbot-db:13306/HAPPYCALL4?useUnicode=yes&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
+    jdbc-url: jdbc:log4jdbc:mysql://maumai-db:9004/HAPPYCALL4?useUnicode=yes&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
     username: minds
     password: msl1234~
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
   datasource2:
-    jdbc-url: jdbc:log4jdbc:mysql://fastchatbot-db:13306/Chatbot?useUnicode=yes&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
+    jdbc-url: jdbc:log4jdbc:mysql://maumai-db:9004/Chatbot?useUnicode=yes&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=Asia/Seoul&useSSL=false
     username: minds
     password: msl1234~
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
