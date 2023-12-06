@@ -31,7 +31,7 @@ audio:
   port: ':15000'
 
 rest:
-  ip: localhost
+  ip: fast-aicc-dev.maum.ai
   port: ':15000'
   ssl: false
 
@@ -40,12 +40,12 @@ voice:
   port: ':5800'
 
 proxy:
-  protocol: ws
-  ip: localhost
+  protocol: wss
+  ip: fast-aicc-dev.maum.ai
   port: ':443'
 
 chatting:
-  ip: localhost
+  ip: fast-aicc-dev.maum.ai
   port: ':50000'
 
 excel:
@@ -70,7 +70,7 @@ solr:
   url: 'http://localhost:18983/solr/mrc'
   en_url: 'http://localhost:18983/solr/mrc_en'
 
-domain: http://fast-aicc-dev.maum.ai/
+domain: https://fast-aicc-dev.maum.ai/
 
 cookie:
   domainName: maum.ai
@@ -88,13 +88,13 @@ msgtalk:
 site-custom: 'maumAi'
 
 iframe_url:
-  simplebot: 'http://sds-dev.maum.ai:8080/sds-builder/upload/simpleBot'
-  chatbotBuilder: 'http://sds-dev.maum.ai:8080/sds-builder/upload/chatbotBuilder'
-  voicebotBuilder: 'http://sds-dev.maum.ai:8080/sds-builder/upload/vbBuilder'
+  simplebot: 'https://sds-dev.maum.ai:8080/sds-builder/upload/simpleBot'
+  chatbotBuilder: 'https://sds-dev.maum.ai:8080/sds-builder/upload/chatbotBuilder'
+  voicebotBuilder: 'https://sds-dev.maum.ai:8080/sds-builder/upload/vbBuilder'
 
 api:
   simplebot:
-    get_list_url: 'http://sds-dev.maum.ai:8080/sds-builder/upload/simpleBot/getSimpleBotList'
+    get_list_url: 'https://sds-dev.maum.ai:8080/sds-builder/upload/simpleBot/getSimpleBotList'
 
 # JWT signKey
 maum:
@@ -105,13 +105,13 @@ sso:
     client-id: fast-aicc
     request:
       authorize:
-        url: https://sso.maum.ai/hq/oauth/authorize
+        url: http://localhost/hq/oauth/authorize
       request-token:
-        url: https://sso.maum.ai/hq/oauth/token
+        url: http://localhost/hq/oauth/token
       logout-token:
-        url: https://naccount-stg.maum.ai/logout
+        url: http://localhost/logout
       maum-login:
-        url: https://mindslab-stg.maum.ai/auth/login?redirect_url=https://fast-aicc-dev.maum.ai/login
+        url: http://localhost/auth/login?redirect_url=https://fast-aicc-dev.maum.ai/login
     callback:
       token:
         url: https://fast-aicc-dev.maum.ai/login
