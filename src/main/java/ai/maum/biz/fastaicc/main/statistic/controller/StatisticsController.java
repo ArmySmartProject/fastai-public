@@ -456,16 +456,7 @@ public class StatisticsController {
 		if (customProperties.getRestSsl()) {
 			sslDomain = "https://";
 		}
-		String audioUrl = sslDomain + customProperties.getRestIp() + customProperties.getRestPort() + "/call/record/"; // 웹소켓  URL
-		if(customProperties.getRestIp().equals("10.122.64.152")) {
-			audioUrl = "https://"+customProperties.getAudioIp()+customProperties.getAudioPort() + "/call/record/"; // 웹소켓  URL
-		} else if(customProperties.getRestIp().equals("10.122.64.185")) {
-			audioUrl = "http://"+customProperties.getRestIp() + customProperties.getRestPort() + "/call/record/"; // 웹소켓  URL
-		} else if(customProperties.getRestIp().equals("125.132.250.243")) {
-			audioUrl = "https://"+customProperties.getAudioIp()+customProperties.getAudioPort() + "/call/record/"; // 웹소켓  URL
-		} else if (customProperties.getRestIp().equals("3.34.250.255")){
-			audioUrl = "https://fast-aicc-dev.maum.ai" + customProperties.getAudioPort() + "/call/record/"; // 웹소켓  URL
-		}
+		String audioUrl = sslDomain + customProperties.getAudioIp() + customProperties.getAudioPort() + "/call/record/"; // 웹소켓  URL
 
 		// 리턴 값
 		JsonObject jsonReTurnObj =  new JsonObject();
