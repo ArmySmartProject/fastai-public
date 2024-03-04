@@ -20,15 +20,15 @@
 <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/resources/css/fast_aicc.css">
 
 	<!-- Global site tag (gtag.js) - Google Analytics -->
-<c:if test="${siteCustom eq 'maumAi'}">
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-8MFFNEJ9MF"></script>
-	<script>
-	  window.dataLayer = window.dataLayer || [];
-	  function gtag(){dataLayer.push(arguments);}
-	  gtag('js', new Date());
-	  gtag('config', 'G-8MFFNEJ9MF');
-	</script>
-</c:if>
+<%--<c:if test="${siteCustom eq 'maumAi'}">--%>
+<%--	<script async src="https://www.googletagmanager.com/gtag/js?id=G-8MFFNEJ9MF"></script>--%>
+<%--	<script>--%>
+<%--	  window.dataLayer = window.dataLayer || [];--%>
+<%--	  function gtag(){dataLayer.push(arguments);}--%>
+<%--	  gtag('js', new Date());--%>
+<%--	  gtag('config', 'G-8MFFNEJ9MF');--%>
+<%--	</script>--%>
+<%--</c:if>--%>
 
 <!-- library -->
 <!-- <script type="text/javascript" src="/${pageContext.request.contextPath}/resources/js/jquery-1.11.2.min.js"></script> -->

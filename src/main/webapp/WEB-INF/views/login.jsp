@@ -85,13 +85,13 @@
 		}
 		var locale= cookieToLocale("none");
 		console.log(locale);
-		if(locale=='none'){
-			var blang = navigator.language || navigator.userLanguage;
-			if(blang.indexOf("ko")>-1)
-				window.location.href="/login?lang=ko";
-			else
-				window.location.href="/login?lang=en";
-		}
+		// if(locale=='none'){
+		// 	var blang = navigator.language || navigator.userLanguage;
+		// 	if(blang.indexOf("ko")>-1)
+		// 		window.location.href="/login?lang=ko";
+		// 	else
+		// 		window.location.href="/login?lang=en";
+		// }
 	</script>
 </head>
 
@@ -236,10 +236,10 @@
                                 <a class="btn_line_purple" id="ClickLogin">
                                     <strong><spring:message code="A0613" text="로그인"/></strong>
                                 </a>
-                                 <a class="btn_line_purple" id="oauth">
-<!--                                     <span>Sign in with Google</span> -->
-                                    <span>Maum ai 통합로그인</span>
-                                 </a>
+<%--                                 <a class="btn_line_purple" id="oauth">--%>
+<%--<!--                                     <span>Sign in with Google</span> -->--%>
+<%--                                    <span>Maum ai 통합로그인</span>--%>
+<%--                                 </a>--%>
                             </div>
 <%--                            <div class="soc_login">--%>
 <%--								<a class="btn_bg_purple btn_lyr_open" href="#lyr_join">--%>

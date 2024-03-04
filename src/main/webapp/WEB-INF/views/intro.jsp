@@ -68,13 +68,13 @@
 	<![endif]-->
 
   <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-122649087-8"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'UA-122649087-8');
-  </script>
+<%--  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-122649087-8"></script>--%>
+<%--  <script>--%>
+<%--    window.dataLayer = window.dataLayer || [];--%>
+<%--    function gtag(){dataLayer.push(arguments);}--%>
+<%--    gtag('js', new Date());--%>
+<%--    gtag('config', 'UA-122649087-8');--%>
+<%--  </script>--%>
 
   <title><spring:message code="A0616" text="소개 FAST 대화형 AI 서비스" /></title>
 </head>

@@ -153,9 +153,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     	String url = utilProperties.getSsoMindslabTokenLogoutUrl();
         String params = "";
         if(lastChar.equals("/")) {
-        	params = "?client_id=" + utilProperties.getSsoMindslabClientId() + "&returnUrl=" + utilProperties.getDomain() + "logout";
+            params = utilProperties.getDomain() + "logout";
         }else {
-        	params = "?client_id=" + utilProperties.getSsoMindslabClientId() + "&returnUrl=" + utilProperties.getDomain() + "/logout";
+            params = utilProperties.getDomain() + "/logout";
         }
 
         return url + params;
