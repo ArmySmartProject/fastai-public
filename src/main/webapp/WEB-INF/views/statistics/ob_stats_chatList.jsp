@@ -385,8 +385,6 @@
                 jqXHR.setRequestHeader("${_csrf.headerName}", "${_csrf.token}")
             },
 
-            //keon1
-
             colNames:[
                 'NO.',
                 // '날짜',
@@ -799,7 +797,6 @@
 
     function gridSearch(currentPage, excelYn) {
 
-        //keon2
         console.log("실행순서 2");
 
         if($("#minChatCnt").val() > $("#maxChatCnt").val()) {
