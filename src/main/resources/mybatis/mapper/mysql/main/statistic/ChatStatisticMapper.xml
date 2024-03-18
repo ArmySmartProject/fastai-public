@@ -411,18 +411,35 @@
 		  LEFT OUTER JOIN Chatbot.Account B
 	 	    ON A.HOST = B.NO
 	 	 WHERE 1=1
- 	  	   AND A.host IN
+ 	  	  AND A.host IN
 	 	  <foreach collection="botIdArr" item="botIdArr" index="index" open="(" close=")" separator=",">
 	 	  		#{botIdArr}
 	 	  </foreach>
+<!--		  AND category IN-->
+<!--		  <foreach collection="categoryArr" item="categoryArr" index="index" open="(" close=")" separator=",">-->
+<!--		      #{categoryArr}-->
+<!--		  </foreach>-->
+	 	  AND
+		  <foreach collection="channelArr" item="channelArr" index="index" open="(" close=")" separator="OR">
+			  A.channel LIKE CONCAT('%', #{channelArr} , '%')
+		  </foreach>
 	      ) AS T
 	      WHERE 1=1
 	      <if test="consultant != null and consultant != ''">
     		AND T.consultant LIKE CONCAT('%', #{consultant} , '%')
     	  </if>
-    	  <if test="totalChatCnt != null and totalChatCnt != ''">
-    		AND T.totalChatCnt = #{totalChatCnt}
-    	  </if>
+		<choose>
+			<when test="(minChatCnt != null and minChatCnt != '') and (maxChatCnt != null and maxChatCnt != '')">
+				AND T.totalChatCnt >= #{minChatCnt}
+				AND T.totalChatCnt <![CDATA[ <= ]]> #{maxChatCnt}
+			</when>
+			<when test="(minChatCnt != null and minChatCnt != '') and (maxChatCnt == null or maxChatCnt == '')">
+				AND T.totalChatCnt >= #{minChatCnt}
+			</when>
+			<when test="(minChatCnt == null or minChatCnt == '') and (maxChatCnt != null and maxChatCnt != '')">
+				AND T.totalChatCnt <![CDATA[ <= ]]> #{maxChatCnt}
+			</when>
+		</choose>
 	      <choose>
 	      	<when test="searchTime == 'startTime'">
 	      		<if test="fromDate != null and fromDate != '' ">
@@ -525,6 +542,7 @@
 		  		</choose>
 	      	</when>
 	      </choose>
+
 	      <if test="offset != null and rowNum != null and rowNum != 0">
 			OFFSET #{offset, jdbcType=INTEGER} ROWS FETCH NEXT #{rowNum, jdbcType=INTEGER} ROWS ONLY
 		  </if>

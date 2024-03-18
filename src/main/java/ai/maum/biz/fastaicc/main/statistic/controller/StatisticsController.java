@@ -1,21 +1,34 @@
 package ai.maum.biz.fastaicc.main.statistic.controller;
 
+import ai.maum.biz.fastaicc.common.CustomProperties;
+import ai.maum.biz.fastaicc.common.util.ExcelUtill;
+import ai.maum.biz.fastaicc.common.util.Utils;
+import ai.maum.biz.fastaicc.common.util.VariablesMng;
+import ai.maum.biz.fastaicc.main.cousult.ailvr.service.AiIVRService;
+import ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO;
+import ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO;
 import ai.maum.biz.fastaicc.main.cousult.common.domain.CustDataClassVO;
+import ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO;
+import ai.maum.biz.fastaicc.main.cousult.common.service.CampaignService;
+import ai.maum.biz.fastaicc.main.cousult.common.service.CommonService;
+import ai.maum.biz.fastaicc.main.cousult.common.service.ConsultingService;
+import ai.maum.biz.fastaicc.main.cousult.inbound.service.InboundMonitoringService;
 import ai.maum.biz.fastaicc.main.cousult.outbound.service.OutboundMonitoringService;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.util.*;
-
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO;
+import ai.maum.biz.fastaicc.main.statistic.domain.enums.CategoryType;
+import ai.maum.biz.fastaicc.main.statistic.domain.enums.ChannelType;
+import ai.maum.biz.fastaicc.main.statistic.service.StatisticsService;
+import ai.maum.biz.fastaicc.main.user.domain.AuthenticaionVO;
+import ai.maum.biz.fastaicc.main.user.domain.UserVO;
+import ai.maum.biz.fastaicc.main.user.service.AuthService;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -24,11 +37,7 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -37,34 +46,20 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import ai.maum.biz.fastaicc.common.CustomProperties;
-import ai.maum.biz.fastaicc.common.util.ExcelUtill;
-import ai.maum.biz.fastaicc.common.util.Utils;
-import ai.maum.biz.fastaicc.common.util.VariablesMng;
-import ai.maum.biz.fastaicc.main.cousult.ailvr.service.AiIVRService;
-import ai.maum.biz.fastaicc.main.cousult.common.domain.CmCampaignInfoVO;
-import ai.maum.biz.fastaicc.main.cousult.common.domain.CmOpInfoVO;
-import ai.maum.biz.fastaicc.main.cousult.common.domain.FrontMntVO;
-import ai.maum.biz.fastaicc.main.cousult.common.service.CampaignService;
-import ai.maum.biz.fastaicc.main.cousult.common.service.CommonService;
-import ai.maum.biz.fastaicc.main.cousult.common.service.ConsultingService;
-import ai.maum.biz.fastaicc.main.cousult.inbound.service.InboundMonitoringService;
-import ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO;
-import ai.maum.biz.fastaicc.main.statistic.service.StatisticsService;
-import ai.maum.biz.fastaicc.main.user.domain.AuthenticaionVO;
-import ai.maum.biz.fastaicc.main.user.domain.UserVO;
-import ai.maum.biz.fastaicc.main.user.service.AuthService;
-import lombok.extern.slf4j.Slf4j;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Controller
@@ -1079,9 +1074,28 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 		// json -> map
 		map = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
 		List<String> botIdArr = new ArrayList<>();
-		
+		List<String> categoryArr = new ArrayList<>();
+		List<String> channelArr = new ArrayList<>();
+
 		for (int i = 0; i < map.get("botIdArr").toString().split(",").length; i++) {
 			botIdArr.add(map.get("botIdArr").toString().split(",")[i]);
+		}
+
+		for (int i = 0; i < map.get("categoryArr").toString().split(",").length; i++) {
+			categoryArr.add(map.get("categoryArr").toString().split(",")[i]);
+		}
+
+		for (int i = 0; i < map.get("channelArr").toString().split(",").length; i++) {
+			channelArr.add(map.get("channelArr").toString().split(",")[i]);
+		}
+
+		statisticVO.setCategory(map.get("category").toString());
+		statisticVO.setUserFeedback(map.get("userFeedback").toString());
+		if(map.get("minChatCnt").toString() != null && !map.get("minChatCnt").toString().equals("")){
+			statisticVO.setMinChatCnt(Integer.valueOf(map.get("minChatCnt").toString()));
+		}
+		if(map.get("maxChatCnt").toString() != null && !map.get("maxChatCnt").toString().equals("")){
+			statisticVO.setMaxChatCnt(Integer.valueOf(map.get("maxChatCnt").toString()));
 		}
 
 		statisticVO.setToDate(map.get("toDate").toString());
@@ -1095,6 +1109,8 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 		}
 		statisticVO.setConsultant(map.get("consultant").toString());
 		statisticVO.setBotIdArr(botIdArr);
+		statisticVO.setCategoryArr(categoryArr);
+		statisticVO.setChannelArr(channelArr);
 		
 		if(map.get("excelYn").toString().equals("N")) {
 			statisticVO.setPage(Integer.parseInt(map.get("page").toString()));
@@ -1482,10 +1498,47 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 				}
 			}			
 			
-			return chatBotListMap;
+ 			return chatBotListMap;
 		}
-		
-		
+
+//	@GetMapping("/userStatus")
+//	public ResponseEntity<?> getUserStatusEnums() {
+//
+//		HashMap<String, String> enumItem = new HashMap<>();
+//		for (UserStatusType value : UserStatusType.values()) {
+//
+//			enumItem.put(value.name(), value.getName());
+//
+//		}
+//
+//		return new ResponseEntity<>(new ResponseDto<>(1, "사용여부 Enum", enumItem)
+//				, HttpStatus.OK);
+//	}
+
+	@RequestMapping(value = "/getCategoryList", method = { RequestMethod.GET, RequestMethod.POST })
+	@ResponseBody
+	public List<String> getCategoryList()  {
+
+		List<String> enumStr = new ArrayList<>();
+		for (CategoryType value : CategoryType.values()) {
+			enumStr.add(value.getName());
+		}
+
+		return enumStr;
+	}
+
+	@RequestMapping(value = "/getChannelList", method = { RequestMethod.GET, RequestMethod.POST })
+	@ResponseBody
+	public List<String> getChannelList() {
+
+		List<String> enumStr = new ArrayList<>();
+		for (ChannelType value : ChannelType.values()) {
+			enumStr.add(value.getName());
+		}
+
+		return enumStr;
+	}
+
 		@RequestMapping(value = "/updateEmailInfo", method = { RequestMethod.GET, RequestMethod.POST })
 		@ResponseBody
 		public Map<String, Object> updateEmailInfo(@RequestBody String jsonStr,StatisticVO statisticVO , HttpServletRequest request, HttpServletResponse response)

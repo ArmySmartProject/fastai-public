@@ -40,6 +40,8 @@ public class StatisticVO {
 	private List<String> campaignIdList;
 	
 	//채팅삼담 이력조회
+	private String category;
+	private String userFeedback;
 	private String utter;
 	private String intent;
 	private String createDate;
@@ -62,6 +64,8 @@ public class StatisticVO {
 	private String sessionId;
 	private int botChatCnt;
 	private int totalChatCnt;
+	private int minChatCnt;
+	private int maxChatCnt;
 	
 	private String chatSessionLogId;
 	private String userId;
@@ -79,9 +83,11 @@ public class StatisticVO {
 	private String supporterComment;
 	private String startDtm;
 	private String endDtm;
-	
+
 	private List<String> botIdArr;
-	
+	private List<String> categoryArr;
+	private List<String> channelArr;
+
 	//그룹 정렬
 	private String groupSortOrder;
 	
