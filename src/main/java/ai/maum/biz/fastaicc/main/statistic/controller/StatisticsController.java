@@ -1207,11 +1207,18 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 
 			// json -> map
 			map = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
+
+			List<String> categoryArr = new ArrayList<>();
+
+			for (int i = 0; i < map.get("categoryArr").toString().split(",").length; i++) {
+				categoryArr.add(map.get("categoryArr").toString().split(",")[i]);
+			}
+
 			statisticVO.setStartDate(map.get("startDate").toString());
 			statisticVO.setEndDate(map.get("endDate").toString());
 			statisticVO.setHost(Integer.parseInt(map.get("host").toString()));
 			statisticVO.setLang(Integer.parseInt(map.get("lang").toString()));
-			
+
 			List<StatisticVO> getTotalMessages = statisticsService.getTotalMessages(statisticVO);
 			List<StatisticVO> getTotalUsers = statisticsService.getTotalUsers(statisticVO);
 //			List<StatisticVO> getWeakProb = statisticsService.getWeakProb(statisticVO);
@@ -1363,60 +1370,50 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 				throws JsonParseException, JsonMappingException, IOException{
 			log.info("jsonStr====" + jsonStr);
 			
-			Map<String, Object> map = null;
-			Map<String, Object> devicePcMap = null;
-			Map<String, Object> deviceMobileMap = null;
-			Map<String, Object> channelHpMap = null;
-			Map<String, Object> channelQrMap = null;
-			Map<String, Object> channelKakaoMap = null;
-			Map<String, Object> linkCountMap = null;
-			
+			Map<String, Object> categoryIntellectMap;
+			Map<String, Object> categoryCreationMap;
+			Map<String, Object> categoryTotalplatformMap;
+			Map<String, Object> channelPcMap;
+			Map<String, Object> channelMobileMap;
+			Map<String, Object> channelKSMap;
+
 			// json파서
 			JsonParser jp = new JsonParser();
 			JsonObject jsonObj = (JsonObject) jp.parse(jsonStr);
-			JsonArray jArray = new JsonArray();
-			
+
 			// json -> map
-			map = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
-			devicePcMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
-			deviceMobileMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
-			channelHpMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
-			channelQrMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
-			channelKakaoMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
-			linkCountMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
-			
-			statisticVO.setStartDate(map.get("startDate").toString());
-			statisticVO.setEndDate(map.get("endDate").toString());
-			statisticVO.setHost(Integer.parseInt(map.get("host").toString()));
-			statisticVO.setLang(Integer.parseInt(map.get("lang").toString()));
-			
-			devicePcMap.put("channel", "PC");
-			deviceMobileMap.put("channel", "MOBILE");
-			channelHpMap.put("channel", "HOMEPAGE");
-			channelQrMap.put("channel", "QR");
-			channelKakaoMap.put("channel", "KAKAOTALK");
-			
-			List<StatisticVO> getTotalUsers = statisticsService.getTotalUsers(statisticVO);
-			List<StatisticVO> getTodayUsers = statisticsService.getTodayUsers(statisticVO);
-			
-			List<Map> getPcCount = statisticsService.getDeviceCount(devicePcMap);
-			List<Map> getMobileCount = statisticsService.getDeviceCount(deviceMobileMap);
-			List<Map> getHpCount = statisticsService.getDeviceCount(channelHpMap);
-			List<Map> getQrCount = statisticsService.getDeviceCount(channelQrMap);
-			List<Map> getKakaoCount = statisticsService.getDeviceCount(channelKakaoMap);
-			List<Map> getLinkCount = statisticsService.getLinkCount(linkCountMap);
-			
+			categoryIntellectMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
+			categoryCreationMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
+			categoryTotalplatformMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
+			channelPcMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
+			channelMobileMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
+			channelKSMap = new ObjectMapper().readValue(jsonObj.toString(), Map.class);
+
+			categoryIntellectMap.put("channel", "지능형 업무지원");
+			categoryCreationMap.put("channel", "생성형 지식지원");
+			categoryTotalplatformMap.put("channel", "통합플랫폼 활용지원");
+
+			channelPcMap.put("channel", "PC");
+			channelMobileMap.put("channel", "MOBILE");
+			channelKSMap.put("channel", "KIOSK");
+
+			List<Map> getCategoryIntellectCount = statisticsService.getCategoryCount(categoryIntellectMap);
+			List<Map> getCategoryCreationCount = statisticsService.getCategoryCount(categoryCreationMap);
+			List<Map> getCategoryTotalplatformCount = statisticsService.getCategoryCount(categoryTotalplatformMap);
+
+			List<Map> getPcCount = statisticsService.getDeviceCount(channelPcMap);
+			List<Map> getMobileCount = statisticsService.getDeviceCount(channelMobileMap);
+			List<Map> getKSCount = statisticsService.getDeviceCount(channelKSMap);
+
 			Map<String, Object> doughnutChartDataMap = new HashMap<>();
 			
-			doughnutChartDataMap.put("getTotalUsers", getTotalUsers);
-			doughnutChartDataMap.put("getTodayUsers", getTodayUsers);
+			doughnutChartDataMap.put("getCategoryIntellectCount", getCategoryIntellectCount);
+			doughnutChartDataMap.put("getCategoryCreationCount", getCategoryCreationCount);
+			doughnutChartDataMap.put("getCategoryTotalplatformCount", getCategoryTotalplatformCount);
 			doughnutChartDataMap.put("getPcCount", getPcCount);
 			doughnutChartDataMap.put("getMobileCount", getMobileCount);
-			doughnutChartDataMap.put("getHpCount", getHpCount);
-			doughnutChartDataMap.put("getQrCount", getQrCount);
-			doughnutChartDataMap.put("getKakaoCount", getKakaoCount);
-			doughnutChartDataMap.put("getLinkCount", getLinkCount);
-			
+			doughnutChartDataMap.put("getKSCount", getKSCount);
+
 			return doughnutChartDataMap;
 		}
 		
@@ -1620,6 +1617,12 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 			deviceMobileMap.put("endDate", request.getParameter("toDate"));
 			deviceMobileMap.put("host", Integer.parseInt(request.getParameter("hotelValue")));
 			deviceMobileMap.put("lang", Integer.parseInt(request.getParameter("langValue")));
+			Map<String, Object> deviceKioskMap = new HashMap<>();
+			deviceKioskMap.put("channel", "KIOSK");
+			deviceKioskMap.put("startDate", request.getParameter("fromDate"));
+			deviceKioskMap.put("endDate", request.getParameter("toDate"));
+			deviceKioskMap.put("host", Integer.parseInt(request.getParameter("hotelValue")));
+			deviceKioskMap.put("lang", Integer.parseInt(request.getParameter("langValue")));
 			Map<String, Object> channelHpMap = new HashMap<>();
 			channelHpMap.put("channel", "HOMEPAGE");
 			channelHpMap.put("startDate", request.getParameter("fromDate"));
@@ -1649,14 +1652,16 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 			List<Map<String,Object>> getPcCountList = getPcCount;
 			List getMobileCount = statisticsService.getDeviceCount(deviceMobileMap);
 			List<Map<String,Object>> getMobileCountList = getMobileCount;
+			List getKioskCount = statisticsService.getDeviceCount(deviceKioskMap);
+			List<Map<String,Object>> getKioskCountList = getKioskCount;
 			
 			//유입경로 (홈페이지/QR코드/카카오톡)
-			List getHpCount = statisticsService.getDeviceCount(channelHpMap);
-			List<Map<String,Object>> getHpCountList = getHpCount;
-			List getQrCount = statisticsService.getDeviceCount(channelQrMap);
-			List<Map<String,Object>> getQrCountList = getQrCount;
-			List getKakaoCount = statisticsService.getDeviceCount(channelKakaoMap);
-			List<Map<String,Object>> getKakaoCountList = getKakaoCount;
+//			List getHpCount = statisticsService.getDeviceCount(channelHpMap);
+//			List<Map<String,Object>> getHpCountList = getHpCount;
+//			List getQrCount = statisticsService.getDeviceCount(channelQrMap);
+//			List<Map<String,Object>> getQrCountList = getQrCount;
+//			List getKakaoCount = statisticsService.getDeviceCount(channelKakaoMap);
+//			List<Map<String,Object>> getKakaoCountList = getKakaoCount;
 			
 			//a tag link count
 			List getLinkCount = statisticsService.getLinkCount(linkCountMap);
@@ -1718,7 +1723,7 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 				
 				row = sheet.getRow(rowNo++);
 				cell = row.getCell(2);
-				cell.setCellValue(getTotalEmailList.get(0).get("totalCnt").toString());
+				cell.setCellValue(totalMsg);
 				
 				row = sheet.getRow(rowNo++);
 				row = sheet.getRow(rowNo++);
@@ -1744,10 +1749,10 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 				cell.setCellValue(getTodayUserList.get(0).get("totalCnt").toString());
 				row = sheet.getRow(rowNo++);
 				cell = row.getCell(2);
-				cell.setCellValue(getPcCountList.get(0).get("totalCnt").toString());
+//				cell.setCellValue(getPcCountList.get(0).get("totalCnt").toString());
 				row = sheet.getRow(rowNo++);
 				cell = row.getCell(2);
-				cell.setCellValue(getMobileCountList.get(0).get("totalCnt").toString());
+//				cell.setCellValue(getMobileCountList.get(0).get("totalCnt").toString());
 				
 				row = sheet.getRow(rowNo++);
 				row = sheet.getRow(rowNo++);
@@ -1755,13 +1760,13 @@ public static void jqGirdWriter(HttpServletResponse response, JsonObject jsonReT
 				cell.setCellValue(countryLang);
 				row = sheet.getRow(rowNo++);
 				cell = row.getCell(2);
-				cell.setCellValue(getHpCountList.get(0).get("totalCnt").toString());
+				cell.setCellValue(getPcCountList.get(0).get("totalCnt").toString());
 				row = sheet.getRow(rowNo++);
 				cell = row.getCell(2);
-				cell.setCellValue(getQrCountList.get(0).get("totalCnt").toString());
+				cell.setCellValue(getMobileCountList.get(0).get("totalCnt").toString());
 				row = sheet.getRow(rowNo++);
 				cell = row.getCell(2);
-				cell.setCellValue(getKakaoCountList.get(0).get("totalCnt").toString());
+				cell.setCellValue(getKioskCountList.get(0).get("totalCnt").toString());
 				
 				row = sheet.getRow(rowNo++);
 				row = sheet.getRow(rowNo++);

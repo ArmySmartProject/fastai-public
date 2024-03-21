@@ -799,9 +799,14 @@
 
         console.log("실행순서 2");
 
-        if($("#minChatCnt").val() > $("#maxChatCnt").val()) {
-            alert("최소 발화수가 최대 발화수보다 클 수 없습니다.");
-            return;
+        var minChatCnt = $("#minChatCnt").val();
+        var maxChatCnt = $("#maxChatCnt").val();
+
+        if(minChatCnt != '' && maxChatCnt != '') {
+            if(minChatCnt > maxChatCnt) {
+                alert("최소 발화수가 최대 발화수보다 클 수 없습니다.");
+                return;
+            }
         }
 
         if(excelYn === "Y" && jQuery("#jqGrid").getGridParam('records') === 0 ){

@@ -50,6 +50,7 @@
 	<div id="container">
 	<input type="hidden" id="headerName" value="${_csrf.headerName}" />
     <input type="hidden" id="token" value="${_csrf.token}" />
+        <input type="hidden" id="categoryArr" />
         <!-- .content -->
         <div class="content chatbot_dashboard">
             <!-- .titArea -->
@@ -107,6 +108,16 @@
                             </div>
                         </td>
                     </tr>
+                    <tr>
+                        <th>분류</th>
+                        <td id="multiple2">
+                            <select id="category" class="select" multiple="multiple2">
+                                <option value="생성형 지식지원">생성형 지식지원</option>
+                                <option value="지능형 업무지원">지능형 업무지원</option>
+                                <option value="통합플랫폼 활용지원">통합플랫폼 활용지원</option>
+                            </select>
+                        </td>
+                    </tr>
                     </tbody>
                 </table>
                 <div class="btnBox sz_small line">
@@ -126,52 +137,31 @@
                 <div class="stn_cont" style="overflow: initial;">
                     <div class="stn_col col_fifth">
                         <dl class="dlBox">
-                            <dt>Total Messages</dt>
+                            <dt>전체 챗봇 메세지 수</dt>
                             <dd id="tm_num" class="num"></dd>
                             <dd class="btnBox1">
                                 <button type="button"><span class="fas fa-question-circle"></span>Help</button>
                             </dd>
                         </dl>
                         <dl class="dlBox">
-                            <dt>Total Users</dt>
+                            <dt>전체 챗봇 상담 수</dt>
+                            <dd id="te_num" class="num"></dd>
+                            <dd class="btnBox1">
+                                <button type="button"><span class="fas fa-question-circle"></span>Help</button>
+                            </dd>
+                        </dl>
+                        <dl class="dlBox">
+                            <dt>전체 사용자 수</dt>
                             <dd id="tu_num" class="num"></dd>
                             <dd class="btnBox1">
                                 <button type="button"><span class="fas fa-question-circle"></span>Help</button>
                             </dd>
                         </dl>
                         <dl class="dlBox">
-                            <dt>Avg.conversations per user</dt>
+                            <dt>사용자 당 평균 메세지 수</dt>
                             <dd id="avg_num" class="num ft_clr_red"></dd>
                             <dd class="btnBox1">
                                 <button type="button"><span class="fas fa-question-circle"></span>Help</button>
-                            </dd>
-                        </dl>
-<!--                         <dl class="dlBox"> -->
-<!--                             <dt>Weak understanding</dt> -->
-<!--                             <dd id="wu_num" class="num"></dd> -->
-<!--                             <dd class="btnBox1"> -->
-<!--                                 <button type="button"><span class="fas fa-question-circle"></span>Help</button> -->
-<!--                                 <button type="button"><span class="fas fa-download"></span>Excel Download</button> -->
-<!--                             </dd> -->
-<!--                         </dl> -->
-                        <dl class="dlBox">
-                            <dt>Total Email</dt>
-                            <dd id="te_num" class="num"></dd>
-                            <dd class="btnBox1">
-                                <button type="button"><span class="fas fa-question-circle"></span>Help</button>
-                                <!-- AMR 200305 setting을 click하면 .balloon addClass('on') -->
-                                <button type="button" id="set_email" onclick="setEmail();"><span class="fas fa-cog"></span>Setting</button>
-                            </dd>
-                            <!-- AMR 200305 button setting 클릭 시 나오는 말풍선 -->
-                            <dd id="email_input" class="balloon pright">
-                                <div class="bloon_title"><span>이메일 주소</span></div>
-                                <div class="bloon_cont">
-                                    <input type="text" id="email_text" placeholder="문의 접수용 이메일 주소 입력">
-                                    <div class="btnBox sz_small fr">
-                                        <button type="button" onclick="updateEmail();">저장</button>
-                                        <button type="button" class="btn_close">취소</button>
-                                    </div>
-                                </div>
                             </dd>
                         </dl>
                     </div>
@@ -183,7 +173,7 @@
             <div class="stn allBoxType">
                 <div class="lotBox">
                     <div class="stn_tit">
-                        <h4>Total Messages Per Hour</h4>
+                        <h4>시간대 별 메세지 현황</h4>
                     </div>
 
                     <div class="stn_cont">
@@ -194,7 +184,7 @@
                 </div>
                 <div class="lotBox">
                     <div class="stn_tit">
-                        <h4>Active Users Per Hour</h4>
+                        <h4>시간대 별 사용자 현황</h4>
                     </div>
 
                     <div class="stn_cont">
@@ -210,166 +200,42 @@
             <div class="stn allBoxType">
                 <div class="lotBox">
                     <div class="stn_tit">
-                        <h4>New User Count(today)</h4>
+                        <h4>분류 별 통계</h4>
                         <div class="fr">
                             <dl>
                                 <dt>Total :</dt>
-                                <dd id="nu_sum">0</dd>
+                                <dd id="category_sum">0</dd>
                             </dl>
                         </div>
                     </div>
 
                     <div class="stn_cont">
-                        <div id="dir_newUserCount" class="chartBox1">
-                            <canvas id="newUserCount"></canvas>
+                        <div id="dir_categoryCount" class="chartBox1">
+                            <canvas id="categoryCount"></canvas>
                         </div>
                     </div>
                 </div>
 
                 <div class="lotBox">
                     <div class="stn_tit">
-                        <h4>PC/Mobile Count</h4>
+                        <h4>유입 채널 통계</h4>
                         <div class="fr">
                             <dl>
                                 <dt>Total :</dt>
-                                <dd id="pm_sum">0</dd>
+                                <dd id="channel_sum">0</dd>
                             </dl>
                         </div>
                     </div>
 
                     <div class="stn_cont">
-                        <div id="dir_pcMobileCount" class="chartBox1">
-                            <canvas id="pcMobileCount"></canvas>
+                        <div id="dir_channelCount" class="chartBox1">
+                            <canvas id="channelCount"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- //.section(All Box Type) -->
 
-            <!-- .section(All Box Type) -->
-            <div class="stn allBoxType">
-                <div class="lotBox">
-                    <div class="stn_tit">
-                        <h4>Channel Count</h4>
-                        <div class="fr">
-                            <dl>
-                                <dt>Total :</dt>
-                                <dd id="hq_sum">0</dd>
-                            </dl>
-                        </div>
-                    </div>
-
-                    <div class="stn_cont">
-                        <div id="dir_hpQrCount" class="chartBox1">
-                            <canvas id="hpQrCount"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="lotBox">
-<!--                     <div class="stn_tit" style="visibility: hidden;"></div> -->
-<!--                     <div class="stn_cont" style="visibility: hidden;"></div> -->
-					<div class="stn_tit">
-                        <h4>Link Count</h4>
-                        <div class="fr">
-                            <dl>
-                                <dt>Total :</dt>
-                                <dd id="li_sum">0</dd>
-                            </dl>
-                        </div>
-                    </div>
-
-                    <div class="stn_cont">
-                        <div id="dir_linkCount" class="chartBox1">
-                            <canvas id="linkCount"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- //.section(All Box Type) -->
-
-            <!-- .section(All Box Type) -->
-            <div class="stn allBoxType">
-                <div class="lotBox">
-                    <div class="stn_tit">
-                        <h4>Top 10 Category</h4>
-                        <div class="fr">
-                            <select id="cat_cnt" class="select" onchange="searchIntent();">
-                                <option value="10">10개보기</option>
-                                <option value="-1">전체보기</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="stn_cont">
-                        <!-- 200227 AMR tbl_box -->
-                        <div class="tbl_box">
-                            <table class="tbl_line">
-                                <caption class="hide">Top 10 Category</caption>
-                                <colgroup>
-                                    <col style="width: 38px"><col><col style="width: 64px">
-                                </colgroup>
-                                <thead>
-                                <tr>
-                                    <th scope="row">No.</th>
-                                    <th scope="row">Category</th>
-                                    <th scope="row" class="al_r">Count</th>
-                                </tr>
-                                </thead>
-                                <tbody id="cc_tbody">
-                                <tr>
-                                    <td colspan="3">조회된 데이터가 없습니다.</td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="lotBox">
-                    <div class="stn_tit">
-                        <h4 id="choiceIntent">Choice Intent</h4>
-                        <h4>User Question</h4>
-                    </div>
-
-                    <div class="stn_cont">
-                        <div class="tbl_box">
-                            <table class="tbl_line">
-                                <caption class="hide">User Question List</caption>
-                                <colgroup>
-                                    <col><col style="width: 64px">
-                                </colgroup>
-                                <thead>
-                                <tr>
-                                    <th scope="row">User Question</th>
-                                    <th scope="row" class="al_r">Count</th>
-                                </tr>
-                                </thead>
-                                <tbody id="uq_tbody">
-                                <tr>
-                                    <td colspan="2" class="dataNone">조회된 데이터가 없습니다.</td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- .section(All Box Type) -->
-            <div class="stn allBoxType">
-                <div class="stn_tit">
-                    <h4>Global Map</h4>
-                </div>
-                <div class="stn_cont">
-                    <div class="stn_col">
-                        <div id="mapDiv">
-                            <div id="map1"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- //.section(All Box Type) -->
         </div>
         <!-- //.content -->
     </div>
@@ -435,14 +301,50 @@
 				startDate: $("#fromDate").val()
 			}).on('changeDate', function(selectedDate){
 				$("#fromDate").datepicker('setEndDate',selectedDate.date);
-			});	
+			});
 		}
-		
+
 		getChatBotList();
+        getCategoryList();
 		selectDate();
-		
+
 	});
-	
+
+    function getCategoryList() {
+
+        var obj = new Object();
+
+        $.ajax({
+            url : "${pageContext.request.contextPath}/getCategoryList",
+            data : JSON.stringify(obj),
+            method : 'POST',
+            contentType : "application/json; charset=utf-8",
+            beforeSend : function(xhr) {
+                xhr.setRequestHeader("${_csrf.headerName}", "${_csrf.token}");
+            },
+        }).success(function(result) {
+            var categoryArr = new Array();
+            $('#multiple2').empty();
+            var innerHTML = "";
+            innerHTML += '<select id="category" class="select" multiple="multiple2" onchange="changeCategory(this.value);">';
+            if(result != null && result.length > 0){
+                for(var i = 0; i < result.length; i++){
+                    innerHTML += '<option value="' + result[i] + '"selected>' + result[i] + '</option>';
+                    categoryArr.push(result[i]);
+                }
+            }
+            innerHTML += '</select>';
+            $("#categoryArr").val(categoryArr);
+            $("#multiple2").append(innerHTML);
+            $('#category').multiselect({
+                includeSelectAllOption: true,
+            });
+
+        }).fail(function(result) {
+            console.log("ajax connection error: getCategoryList");
+        });
+    }
+
 	function getChatBotList(){
 		var obj = new Object();
 		obj.companyId = ""
@@ -486,6 +388,7 @@
 		obj.endDate = $("#toDate").val();
 		obj.lang = $("#select_lang").val();
 		obj.host = $("#select_channel").val();
+        obj.categoryArr = $("#categoryArr").val();
 		
 		$.ajax({url : "/getChatStats",
 			data : JSON.stringify(obj),
@@ -500,7 +403,7 @@
 			var getTotalUsers = result.getTotalUsers[0];
 			var avgNum = Math.round(getTotalMessage.totalCnt/getTotalUsers.totalCnt);
 // 			var getWeakProb = result.getWeakProb[0];
-			var getTotalEmail = result.getTotalEmail[0];
+// 			var getTotalEmail = result.getTotalEmail[0];
 // 			var getMostIntents = result.getMostIntents;
 // 			var getMostIntentsAll = result.getMostIntentsAll;
 // 			var getTotalMsgPerHour = result.getTotalMsgPerHour;
@@ -517,24 +420,24 @@
 			//Weak understanding
 // 			$("#wu_num").text(getWeakProb.totalCnt);
 			//Total Email
-			$("#te_num").text(getTotalEmail.totalCnt);
+			$("#te_num").text(getTotalUsers.totalCnt);
 			//봇 선택에서 선택된 봇이름 타이틀로 설정
 			// $("#page_title").text($("#select_channel option:selected").text());
 			
 			remove_canvas();
 		    make_canvas();
-			
-		    searchIntent();
-			
-		    getTotalLineChart();
-			getdoughnutChart();
-			
-			getUserCountry();
+
+            getTotalLineChart();
+            getdoughnutChart();
+
+		    // searchIntent();
+            // getUserCountry();
+
 		}).fail(function(result) {
 			console.log("ajax connection error: searchChatStats");
 		});
 	}
-	
+
 	function selectDate(){
 		var selectDate = $("#select_date").val();
 		
@@ -695,7 +598,8 @@
 			console.log("ajax connection error: searchUtters");
 		});
 	}
-	
+
+
 	function getTotalLineChart(){
 		var obj = new Object();
 		
@@ -751,51 +655,31 @@
 			},
 		}).success(function(result) {
 			
-			var getTotalUsers = result.getTotalUsers[0];
-			var getTodayUsers = result.getTodayUsers[0];
+			var getCategoryIntellectCount = result.getCategoryIntellectCount[0];
+            var getCategoryCreationCount = result.getCategoryCreationCount[0];
+            var getCategoryTotalplatformCount = result.getCategoryTotalplatformCount[0];
 			var getPcCount = result.getPcCount[0];
 			var getMobileCount = result.getMobileCount[0];
-			var getHpCount = result.getHpCount[0];
-			var getQrCount = result.getQrCount[0];
-			var getKakaoCount = result.getKakaoCount[0];
-			var getLinkCount = result.getLinkCount;
+			var getKSCount = result.getKSCount[0];
+
+			const category_label = ['생성형 지식지원', '지능형 업무지원', '통합플랫폼 활용지원'];
+			const channel_label = ['PC', 'Mobile', 'KIOSK'];
 			
-		 	var linkLabel = [];
-		 	var linkTotalCnt = 0;
-		 	var linkEachCount = [];
-			for (var i = 0; i < getLinkCount.length; i++) {
-				linkLabel.push(getLinkCount[i].href);
-				linkEachCount.push(getLinkCount[i].linkCnt);
-				linkTotalCnt = linkTotalCnt + getLinkCount[i].linkCnt;
-			}
-			
-			const nu_label = ['Existing User', 'Today',];
-			const pm_label = ['PC', 'Mobile',];
-			const hq_label = ['Homepage', 'QR', 'KakaoTalk'];
-			
-			var arrayUserData = new Array();
-			arrayUserData.push((getTotalUsers.totalCnt - getTodayUsers.totalCnt));
-			arrayUserData.push(getTodayUsers.totalCnt);
-			$("#nu_sum").text(getTotalUsers.totalCnt);
-			
-			var arrayDeviceData = new Array();
-			arrayDeviceData.push(getPcCount.totalCnt);
-			arrayDeviceData.push(getMobileCount.totalCnt);
-			$("#pm_sum").text((getPcCount.totalCnt + getMobileCount.totalCnt));
+			var arrayCategoryData = new Array();
+            arrayCategoryData.push(getCategoryIntellectCount.totalCnt);
+            arrayCategoryData.push(getCategoryCreationCount.totalCnt);
+            arrayCategoryData.push(getCategoryTotalplatformCount.totalCnt);
+			$("#category_sum").text(getCategoryIntellectCount.totalCnt + getCategoryCreationCount.totalCnt + getCategoryTotalplatformCount.totalCnt);
 			
 			var arrayChannelData = new Array();
-			arrayChannelData.push(getHpCount.totalCnt);
-			arrayChannelData.push(getQrCount.totalCnt);
-			arrayChannelData.push(getKakaoCount.totalCnt);
-			$("#hq_sum").text((getHpCount.totalCnt + getQrCount.totalCnt + getKakaoCount.totalCnt));
-			
-			$("#li_sum").text(linkTotalCnt);
-			
-		    draw_chart("newUserCount", get_doughnut_chart_data(nu_label, arrayUserData));
-		    draw_chart("pcMobileCount", get_doughnut_chart_data(pm_label, arrayDeviceData));
-		    draw_chart("hpQrCount", get_doughnut_chart_data(hq_label, arrayChannelData));
-		    draw_chart("linkCount", get_doughnut_chart_data(linkLabel, linkEachCount));
-			
+			arrayChannelData.push(getPcCount.totalCnt);
+			arrayChannelData.push(getMobileCount.totalCnt);
+			arrayChannelData.push(getKSCount.totalCnt);
+			$("#channel_sum").text(getPcCount.totalCnt + getMobileCount.totalCnt + getKSCount.totalCnt);
+
+		    draw_chart("categoryCount", get_doughnut_chart_data(category_label, arrayCategoryData));
+		    draw_chart("channelCount", get_doughnut_chart_data(channel_label, arrayChannelData));
+
 		}).fail(function(result) {
 			console.log("ajax connection error: getdoughnutChart");
 		});
@@ -910,7 +794,7 @@
 		});
 		
 	}
-	
+
 	function excelDown(){
 		
 		var obj = new Object();

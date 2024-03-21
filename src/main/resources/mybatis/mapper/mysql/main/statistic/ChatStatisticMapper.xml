@@ -25,13 +25,21 @@
 		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
 		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
 		   AND HOST = #{host}
+		<!--		  AND category IN-->
+		<!--		  <foreach collection="categoryArr" item="categoryArr" index="index" open="(" close=")" separator=",">-->
+		<!--		      #{categoryArr}-->
+		<!--		  </foreach>-->
 	</select>
 	
 	<select id="getTotalUsers" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
 		 SELECT COUNT(*) AS totalCnt
 		   FROM ChatbotLog.SessionLog
 		  WHERE 1=1
-		    AND HOST = #{host} 
+		    AND HOST = #{host}
+		<!--		  AND category IN-->
+		<!--		  <foreach collection="categoryArr" item="categoryArr" index="index" open="(" close=")" separator=",">-->
+		<!--		      #{categoryArr}-->
+		<!--		  </foreach>-->
 			AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
 			AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
 			<choose>
@@ -107,7 +115,11 @@
 	<select id="getTotalEmail" parameterType="ai.maum.biz.fastaicc.main.statistic.domain.StatisticVO" resultType="map">
 		SELECT COUNT(*) AS totalCnt
   		  FROM ChatbotLog.SessionLog
- 		 WHERE HOST = #{host} 
+ 		 WHERE HOST = #{host}
+		<!--		  AND category IN-->
+		<!--		  <foreach collection="categoryArr" item="categoryArr" index="index" open="(" close=")" separator=",">-->
+		<!--		      #{categoryArr}-->
+		<!--		  </foreach>-->
  		   AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
 		   AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
    		   AND CHANNEL LIKE CONCAT('%', '"sendResult":true' , '%')
@@ -342,7 +354,38 @@
 				</when>
 			</choose>
 	</select>
-	
+
+	<select id="getCategoryCount" parameterType="map" resultType="map">
+		SELECT count(DISTINCT SESSION) AS totalCnt
+		FROM ChatbotLog.SessionLog
+		WHERE 1=1
+		AND HOST = #{host}
+		AND #{startDate} <![CDATA[ <= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		AND #{endDate} <![CDATA[ >= ]]> DATE_FORMAT(createdAt, '%Y-%m-%d')
+		<!--		  AND category IN-->
+		<!--		  <foreach collection="categoryArr" item="categoryArr" index="index" open="(" close=")" separator=",">-->
+		<!--		      #{categoryArr}-->
+		<!--		  </foreach>-->
+		<choose>
+			<when test="lang == 1">
+				AND lang1Cnt IS NOT NULL
+				AND lang1Cnt != 0
+			</when>
+			<when test="lang == 2">
+				AND lang2Cnt IS NOT NULL
+				AND lang2Cnt != 0
+			</when>
+			<when test="lang == 3">
+				AND lang3Cnt IS NOT NULL
+				AND lang3Cnt != 0
+			</when>
+			<when test="lang == 4">
+				AND lang4Cnt IS NOT NULL
+				AND lang4Cnt != 0
+			</when>
+		</choose>
+	</select>
+
 	<select id="getUserCountry" parameterType="map" resultType="map">
 		SELECT DISTINCT SESSION
      		 , CHANNEL AS content

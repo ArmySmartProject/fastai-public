@@ -75,7 +75,7 @@
         <li class="ico_help"><a title="도움말" href="#lyr_help" class="btn_lyr_open"><span>도움말</span></a></li>
     </ul>
     <!-- //.nav_etc -->
-    <a class="btn_lyr_open btn_join" onclick="openPopup('mailForm')"><spring:message code="A0327" text="문의하기" /></a>
+    <%--<a class="btn_lyr_open btn_join" onclick="openPopup('mailForm')"><spring:message code="A0327" text="문의하기" /></a>--%>
     <ul class="nav_etc">
         <li class="ico_logout"><a title="로그아웃"  onclick="logout()"><span>로그아웃</span></a></li>
     </ul>

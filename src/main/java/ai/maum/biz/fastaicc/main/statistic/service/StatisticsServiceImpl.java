@@ -180,6 +180,11 @@ public class StatisticsServiceImpl implements StatisticsService {
 		return ChatStatisticMapper.getDeviceCount(map);
 	}
 	@Override
+	public List<Map> getCategoryCount(Map<String, Object> map) {
+		return ChatStatisticMapper.getCategoryCount(map);
+	}
+
+	@Override
 	public List<StatisticVO> getUserCountry(StatisticVO statisticVO) {
 		return ChatStatisticMapper.getUserCountry(statisticVO);
 	}

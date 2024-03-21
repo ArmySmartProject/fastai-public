@@ -50,18 +50,13 @@ function draw_charts(date_label, tm_data, au_data, nu_data, pm_data, hq_data, li
 
 function remove_canvas() {
     $("canvas").remove();
-    $("#map1").remove();
 }
 
 function make_canvas() {
     $("#dir_totalMessagesPerHour").append('<canvas id="totalMessagesPerHour"></canvas>')
     $("#dir_activeUsersPerHour").append('<canvas id="activeUsersPerHour"></canvas>')
-    $("#dir_newUserCount").append('<canvas id="newUserCount"></canvas>')
-    $("#dir_pcMobileCount").append('<canvas id="pcMobileCount"></canvas>')
-    $("#dir_hpQrCount").append('<canvas id="hpQrCount"></canvas>')
-    $("#dir_linkCount").append('<canvas id="linkCount"></canvas>')
-    $("#mapDiv").append('<div id="map1"></div>')
-   
+    $("#dir_categoryCount").append('<canvas id="categoryCount"></canvas>')
+    $("#dir_channelCount").append('<canvas id="channelCount"></canvas>')
 }
 function make_map(country_data){
 //	$('#map1').vectorMap({
@@ -109,7 +104,7 @@ function draw_char_sum_num(nu_data, pm_data, hq_data, li_data) {
 }
 
 function draw_chart(eleId, chart_data) {
-    let ctx = document.getElementById(eleId).getContext('2d');
+     let ctx = document.getElementById(eleId).getContext('2d');
     window.myLine = new Chart(ctx, chart_data);
 }
 

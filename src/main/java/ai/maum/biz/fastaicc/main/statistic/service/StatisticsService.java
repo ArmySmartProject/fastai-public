@@ -92,6 +92,7 @@ public interface StatisticsService {
 	List<StatisticVO> getTodayUsers(StatisticVO statisticVO);
 
 	List<Map> getDeviceCount(Map<String, Object> map);
+	List<Map> getCategoryCount(Map<String, Object> map);
 
 	List<StatisticVO> getUserCountry(StatisticVO statisticVO);
 
